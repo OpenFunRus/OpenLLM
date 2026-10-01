@@ -61,6 +61,7 @@ export function SettingsModal(): JSX.Element | null {
       'agentMaxWallTimeMin',
       'agentAutoContinue',
       'agentContextStopPercent',
+      'tavilyApiKey',
     ]
     for (const k of keys) await window.api.setSetting(k, settings[k] as AppSettings[typeof k])
 
@@ -214,6 +215,18 @@ export function SettingsModal(): JSX.Element | null {
                     onChange={(e) => update('agentContextStopPercent', Number(e.target.value))}
                   />
                   <span className={styles.hint}>{t.agentContextStopHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.tavilyApiKey}</label>
+                  <input
+                    className={styles.input}
+                    type="password"
+                    value={settings.tavilyApiKey}
+                    placeholder={t.tavilyApiKeyPlaceholder}
+                    onChange={(e) => update('tavilyApiKey', e.target.value)}
+                    autoComplete="off"
+                  />
+                  <span className={styles.hint}>{t.tavilyApiKeyHint}</span>
                 </div>
               </>
             )}

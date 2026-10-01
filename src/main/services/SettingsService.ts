@@ -9,6 +9,7 @@ const defaults: AppSettings = {
   recentWorkspaces: [],
   lastWorkspacePath: null,
   githubPat: '',
+  tavilyApiKey: '',
   gitAuthorName: '',
   gitAuthorEmail: '',
   apiModels: [],

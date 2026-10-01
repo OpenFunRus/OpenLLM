@@ -229,6 +229,8 @@ export interface AppSettings {
   agentAutoContinue: boolean
   /** Agent: pause batch when context usage exceeds this % (default 92). */
   agentContextStopPercent: number
+  /** Optional Tavily API key for WebSearch (free tier: 1000/month). Keyless works without it. */
+  tavilyApiKey: string
   /** Internal: agent limits migration version. */
   agentLimitsVersion?: number
 }
