@@ -1,0 +1,23 @@
+.tooltip {
+  position: fixed;
+  z-index: 10000;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 5px 9px;
+  background: var(--bg-dropdown);
+  color: var(--fg-primary);
+  font-size: 11px;
+  line-height: 1.35;
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tooltipWrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: auto;
+}

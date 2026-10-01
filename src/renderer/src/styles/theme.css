@@ -1,0 +1,124 @@
+/* ─── Cursor Dark Theme (default) ─────────────────────────────────────── */
+:root {
+  --bg-window:        #0d0d0d;
+  --bg-sidebar:       #141414;
+  --bg-activity:      #0d0d0d;
+  --bg-tab-bar:       #141414;
+  --bg-tab-active:    #1a1a1a;
+  --bg-tab-inactive:  #141414;
+  --bg-editor:        #1a1a1a;
+  --bg-panel:         #141414;
+  --bg-input:         #1f1f1f;
+  --composer-cap-bg:  #1a1a1a;
+  --bg-hover:         #2a2a2a;
+  --bg-selected:      #2a2d3a;
+  --bg-dropdown:      #1f1f1f;
+
+  --fg-primary:       #e6e6e6;
+  --fg-secondary:     #888888;
+  --fg-muted:         #555555;
+  --fg-tab-active:    #ffffff;
+  --fg-tab-inactive:  #888888;
+
+  --accent:           #007ACC;
+  --accent-hover:     #1a8ad4;
+  --accent-blue:      #4d9cf6;
+  --accent-green:     #3dca7d;
+  --accent-red:       #f25c5c;
+  --accent-yellow:    #e8b84b;
+  --accent-orange:    #e8750a;
+
+  --border:           #2a2a2a;
+  --border-light:     #333333;
+
+  --status-bar-bg:    #0d0d0d;
+  --status-bar-fg:    #888888;
+  --status-bar-accent-bg: #007ACC;
+  --status-bar-accent-fg: #ffffff;
+
+  --ai-user-bg:       #2a2a2a;
+  --ai-assistant-bg:  transparent;
+  --ai-accent:        #007ACC;
+
+  --scrollbar-thumb:        rgba(0, 122, 204, 0.45);
+  --scrollbar-thumb-hover:  #007ACC;
+  --scrollbar-track:        transparent;
+
+  --title-bar-bg:     #0d0d0d;
+  --title-bar-fg:     #888888;
+
+  --context-menu-bg:  #1f1f1f;
+  --context-menu-border: #2a2a2a;
+
+  --resize-handle:    transparent;
+  --resize-handle-hover: #007ACC;
+
+  /* Typography */
+  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:   'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 16px;
+
+  /* Spacing */
+  --activity-bar-width: 48px;
+  --sidebar-width:      260px;
+  --ai-panel-width:     360px;
+  --tab-height:         35px;
+  --status-bar-height:  22px;
+  --title-bar-height:   32px;
+  --terminal-height:    240px;
+}
+
+/* ─── Cursor Light Theme ───────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-window:        #ffffff;
+  --bg-sidebar:       #f5f5f5;
+  --bg-activity:      #f0f0f0;
+  --bg-tab-bar:       #f0f0f0;
+  --bg-tab-active:    #ffffff;
+  --bg-tab-inactive:  #f0f0f0;
+  --bg-editor:        #ffffff;
+  --bg-panel:         #f5f5f5;
+  --bg-input:         #f9f9f9;
+  --composer-cap-bg:  #f0f0f0;
+  --bg-hover:         #e8e8e8;
+  --bg-selected:      #dde6ff;
+  --bg-dropdown:      #ffffff;
+
+  --fg-primary:       #1a1a1a;
+  --fg-secondary:     #666666;
+  --fg-muted:         #999999;
+  --fg-tab-active:    #1a1a1a;
+  --fg-tab-inactive:  #666666;
+
+  --accent:           #007ACC;
+  --accent-hover:     #1a8ad4;
+  --accent-blue:      #2d7df0;
+  --accent-green:     #2ea85a;
+  --accent-red:       #d63030;
+  --accent-yellow:    #c98a00;
+  --accent-orange:    #d46500;
+
+  --border:           #e0e0e0;
+  --border-light:     #ebebeb;
+
+  --status-bar-bg:    #f0f0f0;
+  --status-bar-fg:    #666666;
+  --status-bar-accent-bg: #007ACC;
+  --status-bar-accent-fg: #ffffff;
+
+  --ai-user-bg:       #e8e8e8;
+  --ai-assistant-bg:  transparent;
+
+  --scrollbar-thumb:        rgba(0, 122, 204, 0.35);
+  --scrollbar-thumb-hover:  #007ACC;
+  --scrollbar-track:        transparent;
+
+  --title-bar-bg:     #f0f0f0;
+  --title-bar-fg:     #666666;
+
+  --context-menu-bg:  #ffffff;
+  --context-menu-border: #e0e0e0;
+}

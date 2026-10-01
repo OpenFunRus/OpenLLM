@@ -1,0 +1,94 @@
+.splitter {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 50;
+  touch-action: none;
+  background: transparent;
+}
+
+.vertical {
+  width: 8px;
+  margin: 0 -4px;
+  cursor: col-resize;
+  align-self: stretch;
+}
+
+.horizontal {
+  height: 8px;
+  margin: -4px 0;
+  cursor: row-resize;
+  align-self: stretch;
+  width: 100%;
+}
+
+/* Wide invisible grab zone */
+.vertical::before,
+.horizontal::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+}
+
+.vertical::before {
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  right: -6px;
+}
+
+.horizontal::before {
+  left: 0;
+  right: 0;
+  top: -6px;
+  bottom: -6px;
+}
+
+.line {
+  position: absolute;
+  z-index: 2;
+  background: var(--border);
+  transition: background 0.12s, width 0.12s, height 0.12s;
+  pointer-events: none;
+}
+
+.vertical .line {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+}
+
+.horizontal .line {
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+}
+
+.hovered .line,
+.dragging .line {
+  background: var(--resize-handle-hover);
+}
+
+.vertical.hovered .line,
+.vertical.dragging .line {
+  width: 3px;
+}
+
+.horizontal.hovered .line,
+.horizontal.dragging .line {
+  height: 3px;
+}
+
+.dragging {
+  z-index: 100;
+}
+
+.dragOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: transparent;
+}

@@ -1,0 +1,50 @@
+.bar {
+  height: var(--status-bar-height);
+  background: var(--status-bar-bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.left, .right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.item {
+  height: 22px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--status-bar-fg);
+  border-radius: 3px;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+
+.item:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.modelActive {
+  color: var(--accent);
+}
+
+.icon {
+  font-size: 12px;
+}
+
+.divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-light);
+  margin: 0 2px;
+}

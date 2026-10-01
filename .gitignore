@@ -1,0 +1,23 @@
+node_modules
+dist
+release
+out
+*.zip
+.DS_Store
+*.log
+logs/
+CLAUDE.md
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
+# Debug test scripts
+test-*.cjs
+test-*.mjs
+test-*.js
+test_electron_require.cjs
+test_processtype.mjs
+test_esm_app/
+test_minimal/

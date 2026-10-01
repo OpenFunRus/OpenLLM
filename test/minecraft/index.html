@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Minecraft</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud">
+    <div id="crosshair"></div>
+    <div id="hotbar"></div>
+    <div id="block-preview"></div>
+  </div>
+
+  <div id="info">
+    <h1>3D Minecraft</h1>
+    <p>
+      <b>WASD</b> — движение<br />
+      <b>Пробел</b> — прыжок / вверх · <b>Shift</b> — вниз<br />
+      <b>Мышь</b> — обзор<br />
+      <b>ЛКМ</b> — сломать · <b>ПКМ</b> — поставить<br />
+      <b>1-9</b> — блок · <b>F</b> — полёт · <b>Esc</b> — пауза
+    </p>
+  </div>
+
+  <div id="overlay">
+    <div id="overlay-inner">
+      <h1>3D Minecraft</h1>
+      <p>Кликни, чтобы играть</p>
+      <p class="small">WASD — движение, Пробел — прыжок, мышь — обзор<br/>ЛКМ — сломать, ПКМ — поставить</p>
+    </div>
+  </div>
+
+  <div id="fps">FPS: —</div>
+  <div id="loading">Загрузка мира...</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module" src="js/blocks.js"></script>
+  <script type="module" src="js/world.js"></script>
+  <script type="module" src="js/player.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

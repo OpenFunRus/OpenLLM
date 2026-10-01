@@ -1,0 +1,189 @@
+.wrapper {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 6px 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.filePath {
+  font-size: var(--font-size-xs);
+  color: var(--accent-blue);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diffStat {
+  display: flex;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.added {
+  color: #4caf50;
+}
+
+.removed {
+  color: #f44336;
+}
+
+.newBadge {
+  font-size: var(--font-size-xs);
+  color: #4caf50;
+  border: 1px solid #4caf5055;
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+.unchanged {
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+
+.toggleBtn {
+  font-size: var(--font-size-xs);
+  padding: 1px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  background: var(--bg-input);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+}
+
+.toggleBtn:hover,
+.toggleBtn.active {
+  color: var(--fg-primary);
+  background: var(--bg-selected);
+}
+
+.applyBtn {
+  font-size: var(--font-size-xs);
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.applyBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.savedOk {
+  font-size: var(--font-size-xs);
+  color: #4caf50;
+}
+
+.savedErr {
+  font-size: var(--font-size-xs);
+  color: #f44336;
+}
+
+/* Diff view */
+.diffView {
+  background: var(--bg-input);
+  overflow-x: auto;
+}
+
+.diffLine {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+  min-height: 20px;
+}
+
+.diffLine.keep {
+  background: transparent;
+  color: var(--fg-primary);
+}
+
+.diffLine.add {
+  background: rgba(76, 175, 80, 0.15);
+  color: #a5d6a7;
+}
+
+.diffLine.remove {
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef9a9a;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.gutter {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--fg-secondary);
+  user-select: none;
+  font-size: var(--font-size-xs);
+  padding-top: 2px;
+}
+
+.diffLine.add .gutter {
+  color: #4caf50;
+}
+
+.diffLine.remove .gutter {
+  color: #f44336;
+}
+
+.lineText {
+  padding: 1px 10px 1px 4px;
+  white-space: pre;
+  flex: 1;
+}
+
+.collapse {
+  padding: 2px 18px;
+  color: var(--fg-secondary);
+  font-size: var(--font-size-xs);
+  background: var(--bg-hover);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-style: italic;
+  user-select: none;
+}
+
+/* Source (non-diff) view */
+.source {
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--fg-primary);
+  background: var(--bg-input);
+  margin: 0;
+}

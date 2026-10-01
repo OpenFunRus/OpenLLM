@@ -1,0 +1,114 @@
+.panel {
+  flex-shrink: 0;
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  max-height: min(40vh, 360px);
+  overflow-y: auto;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.filePath {
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.openBtn {
+  padding: 4px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.openBtn:hover {
+  border-color: var(--accent);
+  color: var(--fg-primary);
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+
+.dismiss {
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.dismiss:hover {
+  color: var(--fg-primary);
+}
+
+.overview {
+  margin: 0 0 8px;
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  line-height: 1.4;
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg-secondary);
+}
+
+.todos {
+  margin: 10px 0 0;
+  padding-left: 0;
+  list-style: none;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+
+.todos li {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.todoId {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}

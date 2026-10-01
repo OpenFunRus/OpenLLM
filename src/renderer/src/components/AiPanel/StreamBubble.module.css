@@ -1,0 +1,118 @@
+.wrapper {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 6px 0;
+  background: rgba(120, 120, 120, 0.06);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: var(--font-size-xs);
+  text-align: left;
+}
+
+.header:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.headerActive {
+  color: var(--fg-primary);
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chevron:hover {
+  color: var(--fg-primary);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.titleClickable {
+  cursor: pointer;
+  color: var(--fg-primary);
+}
+
+.titleClickable:hover {
+  color: var(--accent-blue);
+}
+
+.body {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.bodyCustom {
+  border-top: 1px solid var(--border);
+  overflow: auto;
+  max-height: 280px;
+}
+
+.bodyLive {
+  max-height: 6.5em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 75%, transparent);
+}
+
+.pulse {
+  animation: streamPulse 1.4s ease-in-out infinite;
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: streamPulse 1.4s ease-in-out infinite;
+}
+
+.cursor {
+  animation: streamPulse 1s step-end infinite;
+  margin-left: 1px;
+}
+
+@keyframes streamPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}

@@ -1,0 +1,97 @@
+.diffView {
+  overflow-x: auto;
+  background: var(--bg-input);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.diffViewLive {
+  max-height: 6.5em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 75%, transparent);
+}
+
+.diffRow {
+  display: flex;
+  align-items: flex-start;
+  min-height: 20px;
+}
+
+.diffRow.keep {
+  background: transparent;
+  color: var(--fg-primary);
+}
+
+.diffRow.add {
+  background: rgba(63, 185, 80, 0.18);
+}
+
+.diffRow.remove {
+  background: rgba(248, 81, 73, 0.18);
+}
+
+.lineNum {
+  width: 36px;
+  flex-shrink: 0;
+  text-align: right;
+  padding: 1px 6px 1px 0;
+  color: var(--fg-muted);
+  user-select: none;
+  font-size: 11px;
+}
+
+.gutter {
+  width: 16px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--fg-muted);
+  user-select: none;
+  font-size: 11px;
+  padding-top: 1px;
+}
+
+.diffRow.add .gutter {
+  color: #3fb950;
+}
+
+.diffRow.remove .gutter {
+  color: #f85149;
+}
+
+.lineText {
+  padding: 1px 10px 1px 4px;
+  white-space: pre;
+  flex: 1;
+  color: var(--fg-primary);
+}
+
+.diffRow.add .lineText {
+  color: #aff5b4;
+}
+
+.diffRow.remove .lineText {
+  color: #ffb1af;
+}
+
+.collapse {
+  padding: 2px 12px;
+  color: var(--fg-secondary);
+  font-size: 11px;
+  background: var(--bg-hover);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-style: italic;
+  user-select: none;
+}
+
+.cursor {
+  animation: streamPulse 1s step-end infinite;
+  margin: 0 0 4px 52px;
+  display: block;
+}
+
+@keyframes streamPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}

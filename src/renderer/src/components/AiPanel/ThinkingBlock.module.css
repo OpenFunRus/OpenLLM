@@ -1,0 +1,10 @@
+.thinkingBubble {
+  background: rgba(120, 120, 120, 0.08);
+}
+
+.thinkingBody {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}

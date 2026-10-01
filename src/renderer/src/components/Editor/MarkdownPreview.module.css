@@ -1,0 +1,8 @@
+.preview {
+  height: 100%;
+  overflow: auto;
+  padding: 20px 28px 32px;
+  color: var(--fg-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}

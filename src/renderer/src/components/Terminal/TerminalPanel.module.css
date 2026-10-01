@@ -1,0 +1,46 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  background: #0d0d0d;
+}
+
+.header {
+  height: 30px;
+  padding: 0 8px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary);
+}
+
+.xterm {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 4px 8px;
+}
+
+.xterm :global(.xterm),
+.xterm :global(.xterm-screen) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Override xterm.js canvas to fill container */
+.xterm :global(.xterm-viewport) {
+  overflow-y: auto !important;
+}
