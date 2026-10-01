@@ -1,126 +1,180 @@
-# LocaLLMIDE
+# OpenLLM
 
-A Cursor-style local LLM-powered code editor built with Electron, React, and TypeScript. Run AI code assistance entirely on your own machine — no cloud, no API keys, no data leaving your device.
+Локальная IDE в стиле Cursor: редактор, терминал, Git и AI-агент поверх **OpenAI-compatible API** (локальный llama.cpp server, vLLM, LM Studio, OpenRouter и т.д.).
 
-![Electron](https://img.shields.io/badge/Electron-35-blue) ![React](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![License](https://img.shields.io/badge/license-MIT-green)
-
----
-
-## Features
-
-- **Monaco Editor** — the same editor that powers VS Code, with syntax highlighting for 50+ languages and multi-tab support
-- **Local LLM Chat** — stream responses from any GGUF model using [node-llama-cpp](https://github.com/withcatai/node-llama-cpp); no internet required
-- **AI File Creation** — the AI can create and write files directly into your workspace from chat responses
-- **Model Manager** — browse and download curated models, or search HuggingFace live for any GGUF file
-- **File Explorer** — full workspace file tree with create, rename, delete support
-- **Source Control** — built-in Git integration (stage, commit, push, pull, branch switching)
-- **GitHub Panel** — view and manage repositories, issues, and pull requests via the GitHub API
-- **Integrated Terminal** — real PTY terminal powered by node-pty and xterm.js
-- **Settings** — configure model download folder, GPU layers, context size, threads, editor font/tab size, Git author, and GitHub PAT
-- **Command Palette** — keyboard-driven command search (Ctrl+Shift+P)
+![Electron](https://img.shields.io/badge/Electron-35-blue) ![React](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 
 ---
 
-## Getting Started
+## Зачем это
 
-### Prerequisites
+OpenLLM — попытка собрать «свой Cursor» на своей машине:
+
+- код и промпты не уходят в облако Cursor (куда именно — зависит от вашего API endpoint);
+- полный контроль над моделью, контекстом и лимитами;
+- agent loop с инструментами как в Cursor: чтение/правка файлов, shell, grep, план, subagents.
+
+**Целевая ОС:** Windows 10/11 x64 (основная). macOS/Linux не тестировались.
+
+---
+
+## Возможности
+
+### Редактор и workspace
+
+- **Monaco Editor** — подсветка синтаксиса, вкладки, diff в чате
+- **Markdown preview** — переключение raw / GitHub-style для `.md`
+- **Explorer** — дерево файлов, создание, переименование, удаление
+- **Терминал** — PTY (node-pty + xterm.js), ресайз вместе с панелями
+
+### Git и GitHub
+
+- **Source Control** — stage, commit, push, pull, ветки
+- **GitHub panel** — репозитории, PR через PAT
+
+### AI-режимы
+
+| Режим | Назначение |
+|-------|------------|
+| **Agent** | Автономный цикл: LLM → tools → результат в контекст |
+| **Plan** | План в `.openllm/plans/`, кнопка «Реализовать» → Agent |
+| **Ask** | Только чтение (grep, read), без правок файлов |
+| **Chat** | Обычный чат + markdown-блоки с файлами |
+
+### Agent (основной режим)
+
+- Native **tool_calls** (OpenAI API) + fallback на XML tool calls
+- Стриминг: reasoning, prose, tool bubbles, diff по файлам
+- **Shell** — команды в фоне, вывод в bubble и терминал
+- **Rollback / Edit** — откат к сообщению с восстановлением файлов и пустых папок
+- **Stop** — прерывание LLM, tools и shell-процессов
+- **Batch + auto-continue** — длинные задачи без обрыва на 30 шагах (как в Cursor)
+- **SwitchMode / AskQuestion** — модалки подтверждения от агента
+- **MCP** — конфиг `mcp.json` (user / workspace scope)
+
+### Настройки агента (по умолчанию)
+
+- 50 шагов за batch, auto-continue включён
+- 60 мин на batch, safety cap 500 шагов
+- Пауза batch при ~92% контекста модели
+
+---
+
+## Быстрый старт
+
+### Требования
 
 - [Node.js](https://nodejs.org/) 18+
-- Windows 10/11 x64 (primary target; macOS/Linux untested)
-- A GGUF model file (download one from the Model Manager inside the app)
+- Windows 10/11 x64
+- Запущенный **OpenAI-compatible** inference server (или облачный endpoint)
 
-### Install & Run
+### Установка
 
 ```bash
-git clone https://github.com/singhhe/LocalLLMIDE.git
-cd LocalLLMIDE
+git clone https://github.com/OpenFunRus/OpenLLM.git
+cd OpenLLM
 npm install
 npm run dev
 ```
 
-> **Note:** `npm install` runs `electron-rebuild` automatically to compile native modules (`node-pty`) for your Electron version. This may take a few minutes on first run.
+> `npm install` пересобирает native-модули (`node-pty`) под ваш Electron.
+
+### Первый запуск
+
+1. **Settings → Models** — добавьте API model: URL, `model` name, token (если нужен)
+2. Загрузите модель (**Load model**)
+3. **File → Open Folder** — откройте workspace
+4. AI panel → режим **Agent** → например: «Создай hello.txt с текстом Hi»
+
+Пример локального сервера (llama.cpp):
+
+```bash
+# на вашей машине, отдельно от OpenLLM
+llama-server -m model.gguf --port 8080
+```
+
+В настройках модели URL: `http://127.0.0.1:8080/v1/chat/completions`
 
 ---
 
-## Using the AI
-
-1. Open the AI panel from the activity bar (right side)
-2. Click **Load Model** and select a `.gguf` file from your local drive, or use the **Model Manager** to download one
-3. Type your request — the AI streams its response in real time
-4. Code blocks with a `language:filepath` header are automatically written to your workspace
-
-### Downloading Models
-
-Click the **Models** icon in the activity bar to open the Model Manager:
-
-- **Curated tab** — one-click download of popular models (Mistral, Llama 3, Phi-3, Gemma, DeepSeek, CodeGemma, and more)
-- **Search HuggingFace tab** — live search across all GGUF models on HuggingFace, expand any result to pick a specific quantization file
-
-Models are saved to the folder configured in Settings (defaults to your user data directory).
-
----
-
-## Building a Distributable
-
-### Portable ZIP (no code-signing required)
+## Сборка (Windows)
 
 ```bash
 npm run build:win
 ```
 
-Output: `release/LocaLLMIDE-<version>-win-x64.zip` — extract and run `LocaLLMIDE.exe`.
+Результат: `release/win-unpacked/OpenLLM.exe`
 
-### NSIS Installer (requires Windows Developer Mode)
-
-Enable **Developer Mode** in Windows Settings → System → For developers, then:
-
-```bash
-npm run build:win
-```
-
-Output: `release/LocaLLMIDE Setup <version>.exe`
-
-> Developer Mode is required because the electron-builder signing toolchain extracts macOS dylib symlinks, which need the "Create symbolic links" privilege on Windows.
+Подпись отключена (`signAndEditExecutable: false`) — для dev-сборки на Windows без Developer Mode.
 
 ---
 
-## Project Structure
+## MCP
+
+Пример конфига: [`.openllm/mcp.json.example`](.openllm/mcp.json.example)
+
+- **User scope:** `%APPDATA%/OpenLLM/mcp.json`
+- **Workspace scope:** `<project>/.openllm/mcp.json`
+
+Формат как в Cursor: `{ "mcpServers": { "name": { "command": "...", "args": [] } } }`
+
+---
+
+## Структура проекта
 
 ```
 src/
-  main/               # Electron main process
-    ipc/              # IPC handlers (fs, git, llm, settings, terminal)
-    services/         # Business logic (FileService, LlmService, GitService, ...)
-    index.ts          # Main entry point
-    preload.ts        # Context bridge
-  renderer/           # React frontend
-    src/
-      components/     # UI components (Editor, AiPanel, Sidebar, Terminal, ...)
-      store/          # Zustand state stores
-      styles/         # Global CSS and theme variables
-  shared/
-    types.ts          # Shared TypeScript types
+  main/                 # Electron main process
+    agent/              # AgentOrchestrator, tools, ShellService
+    ipc/                # IPC handlers
+    services/           # LlmService, FileService, GitService, ...
+  renderer/             # React UI
+    components/         # Editor, AiPanel, Terminal, Modals, ...
+    store/              # Zustand (aiStore, editorStore, ...)
+  shared/               # types, agent prompts, i18n, rollback
+docs/
+  handoff.md            # карта проекта для переноса / онбординга
 ```
 
 ---
 
-## Tech Stack
+## Стек
 
-| Layer | Technology |
-|---|---|
+| Слой | Технология |
+|------|------------|
 | Shell | Electron 35 |
-| Frontend | React 18 + TypeScript |
-| Build | electron-vite + Vite 6 |
-| Editor | Monaco Editor |
-| LLM runtime | node-llama-cpp v3 (llama.cpp) |
-| Terminal | node-pty + xterm.js |
+| UI | React 18 + TypeScript |
+| Сборка | electron-vite + Vite 6 |
+| Редактор | Monaco Editor |
+| LLM | OpenAI-compatible HTTP API (streaming, tool_calls) |
+| Терминал | node-pty + xterm.js |
 | Git | simple-git |
-| GitHub API | @octokit/rest |
+| GitHub | @octokit/rest |
 | State | Zustand |
-| Packaging | electron-builder |
+| MCP | @modelcontextprotocol/sdk |
+| Пакет | electron-builder |
 
 ---
 
-## License
+## Данные вне репозитория
+
+| Что | Где |
+|-----|-----|
+| Settings, chat sessions | `%APPDATA%/OpenLLM/` |
+| Agent terminals | `%APPDATA%/OpenLLM/agent-sessions/` |
+| MCP (user) | `%APPDATA%/OpenLLM/mcp.json` |
+| Workspace | любая папка через Open Folder |
+
+---
+
+## Документация
+
+- [docs/handoff.md](docs/handoff.md) — handoff, архитектура agent, streaming UI
+- [docs/agent-streaming-ui.md](docs/agent-streaming-ui.md) — спека UI стрима
+- [docs/cursor/](docs/cursor/) — заметки по паритету с Cursor
+
+---
+
+## Лицензия
 
 MIT
