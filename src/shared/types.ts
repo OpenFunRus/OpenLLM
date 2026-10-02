@@ -1,5 +1,6 @@
 import type { AgentStepEntry } from './agent/agentSteps'
-import type { AgentToolEvent } from './agent/types'
+import type { AgentChatMessage } from './agent/agentChatMessages'
+import type { AgentPlanPayload, AgentTodoItem, AgentToolEvent, ComposerMode } from './agent/types'
 
 // ── File System ───────────────────────────────────────────────────────────────
 
@@ -152,6 +153,14 @@ export interface ChatSession {
   messages: ChatMessage[]
   createdAt: number
   updatedAt: number
+  /** Per-tab composer mode (Agent / Plan / Ask / Chat). */
+  composerMode?: ComposerMode
+  /** Last known prompt token count for the context meter. */
+  agentPromptTokens?: number | null
+  activePlan?: AgentPlanPayload | null
+  agentTodos?: AgentTodoItem[]
+  /** Full agent API conversation — restored to main process after restart. */
+  agentMessages?: AgentChatMessage[]
 }
 
 export interface ChatSessionsData {

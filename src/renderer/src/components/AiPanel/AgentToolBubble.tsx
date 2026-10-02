@@ -11,6 +11,8 @@ import {
 } from '../../utils/lineDiff'
 import { FileDiffBody } from './FileDiffBody'
 import { PlanBubble } from './PlanBubble'
+import { getInlineToolPresentation, isInlineTool } from './inlineToolPresentation'
+import { InlineToolLine } from './InlineToolLine'
 import { StreamBubble } from './StreamBubble'
 import styles from './AgentToolBubble.module.css'
 
@@ -65,7 +67,9 @@ export function AgentToolBubble({
 
   const filePath = event.filePath ?? inferFilePath(event)
   const isPending = event.status === 'pending'
-  const isFileMutation = Boolean(filePath && (event.name === 'Write' || event.name === 'StrReplace' || event.name === 'Delete'))
+  const isFileToolName =
+    event.name === 'Write' || event.name === 'StrReplace' || event.name === 'Delete'
+  const isFileMutation = isFileToolName && Boolean(filePath || isPending)
   const isDirectory = Boolean(event.directoryPath)
 
   if (event.name === 'Task') {
@@ -83,6 +87,18 @@ export function AgentToolBubble({
     )
   }
 
+  if (isInlineTool(event.name)) {
+    const presentation = getInlineToolPresentation(event, workspacePath)
+    return (
+      <InlineToolLine
+        title={presentation.title}
+        pendingBody={presentation.pendingBody}
+        result={presentation.result}
+        live={isPending && !event.isError}
+      />
+    )
+  }
+
   if (isDirectory && event.directoryPath) {
     const dirName = event.directoryPath.split(/[/\\]/).pop() ?? event.directoryPath
     return (
@@ -94,10 +110,18 @@ export function AgentToolBubble({
     )
   }
 
-  if (isFileMutation && filePath) {
-    const displayName = relativeDisplayPath(filePath, workspacePath)
+  if (isFileMutation) {
+    const displayName = filePath
+      ? relativeDisplayPath(filePath, workspacePath)
+      : isPending
+        ? t.writeFilePending
+        : event.name
+    const iconPath = filePath ?? 'file.txt'
     const oldContent = event.oldContent ?? ''
-    const newContent = event.newContent ?? inferPendingContent(event)
+    const newContent =
+      event.newContent ??
+      inferPendingContent(event) ??
+      (isPending ? event.streamBody ?? '' : '')
     const isNewFile = event.name === 'Write' && !oldContent
     const diffRows = computeLineDiff(oldContent, newContent)
     const { addCount, removeCount } = countDiffStats(diffRows)
@@ -107,17 +131,19 @@ export function AgentToolBubble({
     const canOpen = event.name !== 'Delete' && !event.isError && !isPending
 
     const openFile = async () => {
-      if (!canOpen) return
+      if (!canOpen || !filePath) return
       const name = filePath.split(/[/\\]/).pop() ?? displayName
       const revealLine = event.name === 'StrReplace' ? firstDiffLine(oldContent, newContent) : 1
       await openTabAtLine(filePath, name, revealLine)
     }
 
+    const isFileLive = isPending && !event.isError
+
     return (
       <StreamBubble
         title={
           <>
-            <FileTypeIcon filePath={filePath} />
+            <FileTypeIcon filePath={iconPath} />
             {canOpen ? (
               <button type="button" className={styles.fileNameBtn} onClick={() => void openFile()}>
                 {displayName}
@@ -127,16 +153,16 @@ export function AgentToolBubble({
             )}
           </>
         }
-        live={isPending && !event.isError && streamFocused}
+        live={isFileLive && streamFocused}
         status={event.isError ? 'error' : isPending ? 'running' : 'done'}
         pinPreview={!isMessageStreaming}
         forceHeaderOnly={isMessageStreaming && !streamFocused}
-        bodyNode={(expanded) => (
+        bodyNode={(showFull) => (
           <FileDiffBody
             oldContent={oldContent}
             newContent={newContent}
-            expanded={expanded}
-            live={isPending && !event.isError && streamFocused}
+            expanded={showFull}
+            live={isFileLive && streamFocused}
           />
         )}
         headerExtra={
@@ -238,9 +264,13 @@ function toolSummary(event: AgentToolEvent, workspacePath?: string | null): stri
     const display = relativeDisplayPath(pathArg, workspacePath)
     return `${event.name} ${display}`
   }
-  if (event.name === 'Shell' && typeof event.arguments.command === 'string') {
+  if (
+    (event.name === 'Shell' || event.name === 'AwaitShell') &&
+    typeof event.arguments.command === 'string'
+  ) {
     const cmd = event.arguments.command.trim()
-    return cmd.length > 60 ? `Shell ${cmd.slice(0, 60)}…` : `Shell ${cmd}`
+    const display = cmd.length > 60 ? `${cmd.slice(0, 60)}…` : cmd
+    return t.shellConsoleTitle(display)
   }
   if (event.name === 'Grep' && typeof event.arguments.pattern === 'string') {
     return `Grep "${event.arguments.pattern}"`

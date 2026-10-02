@@ -93,6 +93,13 @@ declare global {
       }) => Promise<ToolResult[]>
       agentParseToolCalls: (text: string) => Promise<ParsedToolCall[]>
       agentClearSession: (sessionId: string) => Promise<void>
+      agentRestoreSession: (
+        sessionId: string,
+        messages: import('../../../../shared/agent/agentChatMessages').AgentChatMessage[] | null | undefined
+      ) => Promise<void>
+      agentGetSessionMessages: (
+        sessionId: string
+      ) => Promise<import('../../../../shared/agent/agentChatMessages').AgentChatMessage[] | null>
       submitAskQuestion: (payload: {
         runId: string
         requestId: string

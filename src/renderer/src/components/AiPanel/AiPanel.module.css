@@ -243,10 +243,21 @@
 }
 .loadBtn:hover { background: var(--accent-hover); }
 
+.messagesColumn {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
+  overflow-anchor: auto;
 }
 
 .loadEarlierBtn {

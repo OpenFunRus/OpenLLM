@@ -143,7 +143,12 @@ async function executeToolCalls(
     const call = toolCalls[i]
     const toolId = `${step + 1}-${i}`
     const pathArg = typeof call.arguments.path === 'string' ? call.arguments.path : undefined
-    const contentsArg = typeof call.arguments.contents === 'string' ? call.arguments.contents : undefined
+    const contentsArg =
+      typeof call.arguments.contents === 'string'
+        ? call.arguments.contents
+        : typeof call.arguments.new_string === 'string'
+          ? call.arguments.new_string
+          : undefined
     const isFileTool = call.name === 'Write' || call.name === 'StrReplace' || call.name === 'Delete'
 
     callbacks.onTool?.({
@@ -250,8 +255,16 @@ export class AgentOrchestrator {
       messages = [
         { role: 'system', content: buildAgentSystemPrompt(currentMode) },
         { role: 'user', content: buildBootstrapUserMessage(userContext, runtime, currentMode) },
-        { role: 'user', content: buildTurnUserMessage(payload.query, userContext, currentMode) },
       ]
+      for (const turn of payload.priorChatTurns ?? []) {
+        const text = turn.content.trim()
+        if (!text) continue
+        messages.push({ role: turn.role, content: text })
+      }
+      messages.push({
+        role: 'user',
+        content: buildTurnUserMessage(payload.query, userContext, currentMode),
+      })
     }
 
     const toolEvents: AgentToolEvent[] = []
@@ -306,6 +319,13 @@ export class AgentOrchestrator {
       callbacks.onStepStart?.(totalStep, displayMaxSteps)
 
       if (nativeTools) {
+        let stepThinkingCommitted = false
+        const commitStepThinking = (thinking: string | null) => {
+          if (stepThinkingCommitted) return
+          stepThinkingCommitted = true
+          callbacks.onStep?.(totalStep, displayMaxSteps, thinking)
+        }
+
         let result
         try {
           result = await llmService.completeAgentStream(messages, {
@@ -313,6 +333,7 @@ export class AgentOrchestrator {
             tools: apiTools,
             onToken: (token) => callbacks.onToken?.(token),
             onReasoningToken: (token) => callbacks.onReasoningToken?.(token),
+            onReasoningComplete: (reasoning) => commitStepThinking(reasoning.trim() || null),
             onToolCallDelta: (calls) => emitStreamingToolDeltas(step, calls, callbacks),
             isAborted: callbacks.isAborted,
           })
@@ -336,13 +357,13 @@ export class AgentOrchestrator {
         const thinking = result.reasoningContent.trim() || null
 
         if (toolCalls.length === 0) {
-          callbacks.onStep?.(totalStep, displayMaxSteps, thinking)
+          commitStepThinking(thinking)
           finalText = result.content
           batchStepCount = step + 1
           break
         }
 
-        callbacks.onStep?.(totalStep, displayMaxSteps, thinking)
+        commitStepThinking(thinking)
         const executed = await executeToolCalls(toolCalls, step, executor, callbacks)
         toolEvents.push(...executed.toolEvents)
         if (callbacks.isAborted?.()) {

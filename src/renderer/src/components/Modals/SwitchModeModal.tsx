@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { t } from '@shared/i18n'
+import { useAiStore } from '../../store/aiStore'
 import { useUiStore } from '../../store/uiStore'
 import styles from './SwitchModeModal.module.css'
 
@@ -13,11 +14,8 @@ function modeLabel(mode: string): string {
 }
 
 export function SwitchModeModal(): JSX.Element | null {
-  const {
-    pendingSwitchMode,
-    clearPendingSwitchMode,
-    setComposerMode,
-  } = useUiStore()
+  const { setComposerMode } = useAiStore()
+  const { pendingSwitchMode, clearPendingSwitchMode } = useUiStore()
   const [submitting, setSubmitting] = useState(false)
 
   const request = pendingSwitchMode

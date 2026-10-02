@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { t } from '@shared/i18n'
 import {
   collapseUnchangedRows,
@@ -54,10 +54,14 @@ export function FileDiffBody({
   live = false,
   previewLines = 4,
 }: Props): JSX.Element | null {
+  const viewRef = useRef<HTMLDivElement>(null)
+
   const displayRows = useMemo(() => {
+    const showFull = expanded || live
+
     if (live && !oldContent && newContent) {
       const rows = streamingAddRows(newContent)
-      return expanded ? rows : tailDiffRows(rows, previewLines)
+      return showFull ? rows : tailDiffRows(rows, previewLines)
     }
 
     if (!newContent && !oldContent) return []
@@ -72,25 +76,41 @@ export function FileDiffBody({
         text,
         newLine: idx + 1,
       }))
-      return expanded ? addRows : tailDiffRows(addRows, previewLines)
+      return showFull ? addRows : tailDiffRows(addRows, previewLines)
     }
 
+    if (showFull) {
+      return rows
+    }
     const collapsed = collapseUnchangedRows(rows)
-    return expanded ? collapsed : tailDiffRows(collapsed, previewLines)
+    return tailDiffRows(collapsed, previewLines)
   }, [oldContent, newContent, expanded, live, previewLines])
+
+  useEffect(() => {
+    const el = viewRef.current
+    if (!el) return
+    if (live) {
+      el.scrollTop = el.scrollHeight
+    } else if (expanded) {
+      const firstChange = el.querySelector('[data-diff-change="true"]') as HTMLElement | null
+      if (firstChange) {
+        firstChange.scrollIntoView({ block: 'nearest' })
+      } else {
+        el.scrollTop = 0
+      }
+    }
+  }, [displayRows, live, newContent, expanded])
 
   if (displayRows.length === 0 && !live) return null
 
   if (displayRows.length === 0 && live) {
     return (
-      <div className={`${styles.diffView} ${styles.diffViewLive}`}>
-        <span className={styles.cursor}>▋</span>
-      </div>
+      <div ref={viewRef} className={`${styles.diffView} ${styles.diffViewLive}`} />
     )
   }
 
   return (
-    <div className={`${styles.diffView} ${live ? styles.diffViewLive : ''}`}>
+    <div ref={viewRef} className={`${styles.diffView} ${live ? styles.diffViewLive : ''}`}>
       {displayRows.map((entry, idx) => {
         if (!isDiffLineRow(entry)) {
           return (
@@ -106,7 +126,11 @@ export function FileDiffBody({
               ? entry.newLine
               : entry.newLine ?? entry.oldLine
         return (
-          <div key={`${entry.type}-${idx}-${lineNum ?? idx}`} className={`${styles.diffRow} ${styles[entry.type]}`}>
+          <div
+            key={`${entry.type}-${idx}-${lineNum ?? idx}`}
+            className={`${styles.diffRow} ${styles[entry.type]}`}
+            data-diff-change={entry.type !== 'keep' ? 'true' : undefined}
+          >
             <span className={styles.lineNum}>{lineNum ?? ''}</span>
             <span className={styles.gutter}>
               {entry.type === 'add' ? '+' : entry.type === 'remove' ? '-' : ' '}
@@ -115,7 +139,6 @@ export function FileDiffBody({
           </div>
         )
       })}
-      {live && <span className={styles.cursor}>▋</span>}
     </div>
   )
 }

@@ -12,7 +12,12 @@ import {
   unregisterAgentRun,
 } from '../agent/askQuestionBridge'
 import { registerShellOutputListener } from '../agent/shellOutputBridge'
-import { clearAgentSession } from '../agent/agentSessionStore'
+import {
+  clearAgentSession,
+  getAgentSessionMessages,
+  setAgentSessionMessages,
+} from '../agent/agentSessionStore'
+import type { AgentChatMessage } from '../../shared/agent/agentChatMessages'
 import { clearSessionTodos } from '../agent/todoSessionStore'
 import { getShellService, killSessionShellJobs } from '../agent/shellRegistry'
 import { workspaceService } from '../services/WorkspaceService'
@@ -71,6 +76,22 @@ export function registerAgentHandlers(): void {
     const id = sessionId ?? 'default'
     clearAgentSession(id)
     clearSessionTodos(id)
+  })
+
+  ipcMain.handle(
+    'agent:restoreSession',
+    (_e, sessionId: string, messages: AgentChatMessage[] | null | undefined) => {
+      const id = sessionId ?? 'default'
+      if (!messages?.length) {
+        clearAgentSession(id)
+        return
+      }
+      setAgentSessionMessages(id, messages)
+    }
+  )
+
+  ipcMain.handle('agent:getSessionMessages', (_e, sessionId: string) => {
+    return getAgentSessionMessages(sessionId ?? 'default')
   })
 
   ipcMain.handle(

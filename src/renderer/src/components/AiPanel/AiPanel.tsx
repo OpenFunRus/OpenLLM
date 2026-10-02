@@ -6,6 +6,12 @@ import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useEditorStore } from '../../store/editorStore'
 import type { AgentUserContext } from '../../../../shared/agent/types'
 import { ChatMessage } from './ChatMessage'
+import { ActiveTurnShell } from './ActiveTurnShell'
+import { ChatTurnChunk } from './ChatTurnChunk'
+import { PromptHeaderBar } from './PromptHeaderBar'
+import { splitChatTurns } from './chatTurns'
+import { useChatAutoScroll } from './useChatAutoScroll'
+import { usePromptHeader } from './usePromptHeader'
 import { t } from '../../../../shared/i18n'
 import type { ApiModelConfig, ImageAttachment } from '../../../../shared/types'
 import styles from './AiPanel.module.css'
@@ -30,8 +36,6 @@ interface AttachedImage extends ImageAttachment {
 
 const INPUT_MIN_HEIGHT = 22
 const INPUT_MAX_HEIGHT = 160
-const MESSAGE_WINDOW = 80
-
 async function clipboardFileToAttachment(file: File): Promise<AttachedImage> {
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -232,8 +236,9 @@ export function AiPanel(): JSX.Element {
     agentPromptTokens,
     agentTodos,
     activePlan,
+    setComposerMode,
   } = useAiStore()
-  const { modelManagerOpen, setModelManagerOpen, composerMode, setComposerMode } = useUiStore()
+  const { modelManagerOpen, setModelManagerOpen, composerMode } = useUiStore()
   const { current: workspace, refreshTree } = useWorkspaceStore()
   const [input, setInput] = useState('')
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([])
@@ -247,7 +252,7 @@ export function AiPanel(): JSX.Element {
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
-  const atBottomRef = useRef(true)
+  const promptAnchorRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const historyRef = useRef<HTMLDivElement>(null)
   const modelDropdownRef = useRef<HTMLDivElement>(null)
   const modelDropdownPortalRef = useRef<HTMLDivElement>(null)
@@ -259,7 +264,6 @@ export function AiPanel(): JSX.Element {
   const [modeDropdownPos, setModeDropdownPos] = useState<{ left: number; bottom: number } | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const prevStreaming = useRef(false)
-  const [msgWindowStart, setMsgWindowStart] = useState(0)
   const [editTarget, setEditTarget] = useState<{ messageIndex: number; text: string } | null>(null)
   const [confirmAction, setConfirmAction] = useState<{
     kind: 'rollback' | 'edit_resend'
@@ -269,16 +273,54 @@ export function AiPanel(): JSX.Element {
   } | null>(null)
 
   const messages = getActiveMessages()
-  const hiddenMessageCount = msgWindowStart
-  const visibleMessages = useMemo(
-    () =>
-      messages.slice(msgWindowStart).map((message, offset) => ({
-        message,
-        index: msgWindowStart + offset,
-      })),
-    [messages, msgWindowStart]
-  )
+  const turns = useMemo(() => splitChatTurns(messages), [messages])
+  const activeTurnIndex = Math.max(0, turns.length - 1)
   const canSend = isModelLoaded && !isStreaming && (input.trim().length > 0 || attachedImages.length > 0)
+
+  const registerPromptAnchor = useCallback(
+    (turnIndex: number) => (el: HTMLDivElement | null) => {
+      if (el) promptAnchorRefs.current.set(turnIndex, el)
+      else promptAnchorRefs.current.delete(turnIndex)
+    },
+    [],
+  )
+
+  const scrollTailKey = useMemo(() => {
+    const last = messages[messages.length - 1]
+    if (!last) return ''
+    const toolCount = last.agentSteps?.reduce((n, s) => n + s.tools.length, 0) ?? last.toolEvents?.length ?? 0
+    return [
+      last.content.length,
+      last.agentReasoningBuffer?.length ?? 0,
+      last.agentProseBuffer?.length ?? 0,
+      last.agentStreamBuffer?.length ?? 0,
+      toolCount,
+      last.isStreaming ? 1 : 0,
+    ].join('|')
+  }, [messages])
+
+  const { handleScroll: handleAutoScroll, pinToBottom } = useChatAutoScroll(
+    messagesRef,
+    scrollTailKey,
+    activeSessionId,
+  )
+
+  const { headerTurnIndex, showHeaderCopy, syncHeaderFromScroll } = usePromptHeader(
+    activeTurnIndex,
+    messagesRef,
+    promptAnchorRefs,
+    scrollTailKey,
+  )
+
+  const headerTurn = turns[headerTurnIndex]
+
+  const handleMessagesScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      handleAutoScroll(e)
+      syncHeaderFromScroll()
+    },
+    [handleAutoScroll, syncHeaderFromScroll],
+  )
 
   const contextUsage = useMemo(() => {
     const activeModel = models.find((m) => m.id === activeModelId)
@@ -307,60 +349,6 @@ export function AiPanel(): JSX.Element {
   useEffect(() => {
     if (!modelManagerOpen) void loadModels()
   }, [modelManagerOpen, loadModels])
-
-  useEffect(() => {
-    setMsgWindowStart(Math.max(0, messages.length - MESSAGE_WINDOW))
-    atBottomRef.current = true
-  }, [activeSessionId])
-
-  useEffect(() => {
-    if (atBottomRef.current) {
-      setMsgWindowStart(Math.max(0, messages.length - MESSAGE_WINDOW))
-    }
-  }, [messages.length])
-
-  const scrollTailKey = useMemo(() => {
-    const last = messages[messages.length - 1]
-    if (!last) return ''
-    const toolCount = last.agentSteps?.reduce((n, s) => n + s.tools.length, 0) ?? last.toolEvents?.length ?? 0
-    return [
-      last.content.length,
-      last.agentReasoningBuffer?.length ?? 0,
-      last.agentProseBuffer?.length ?? 0,
-      last.agentStreamBuffer?.length ?? 0,
-      toolCount,
-      last.isStreaming ? 1 : 0,
-    ].join('|')
-  }, [messages])
-
-  const scrollToBottom = useCallback((smooth: boolean) => {
-    const el = messagesRef.current
-    if (!el) return
-    if (smooth) {
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-    } else {
-      el.scrollTop = el.scrollHeight
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!atBottomRef.current) return
-    scrollToBottom(!isStreaming)
-  }, [scrollTailKey, messages.length, activeSessionId, isStreaming, scrollToBottom])
-
-  const handleMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget
-    atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
-    if (el.scrollTop < 120 && msgWindowStart > 0) {
-      const prevHeight = el.scrollHeight
-      setMsgWindowStart((start) => Math.max(0, start - 30))
-      requestAnimationFrame(() => {
-        const container = messagesRef.current
-        if (!container) return
-        container.scrollTop = container.scrollHeight - prevHeight + container.scrollTop
-      })
-    }
-  }, [msgWindowStart])
 
   useEffect(() => {
     if (prevStreaming.current && !isStreaming) {
@@ -559,15 +547,6 @@ export function AiPanel(): JSX.Element {
     workspace?.path,
   ])
 
-  const handleRollbackRequest = useCallback((messageIndex: number) => {
-    const impact = buildRollbackImpact(messageIndex, 'rollback')
-    if (!rollbackImpactHasChanges(impact)) {
-      executeRollback(messageIndex)
-      return
-    }
-    setConfirmAction({ kind: 'rollback', messageIndex, impact })
-  }, [buildRollbackImpact, executeRollback])
-
   const handleEditOpen = useCallback((messageIndex: number) => {
     const message = messages[messageIndex]
     if (!message || message.role !== 'user') return
@@ -639,6 +618,8 @@ export function AiPanel(): JSX.Element {
 
   const handleSend = async () => {
     if (!canSend) return
+    pinToBottom()
+
     const text = input.trim()
     setInput('')
 
@@ -771,34 +752,46 @@ export function AiPanel(): JSX.Element {
         </div>
       )}
 
-      <div
-        ref={messagesRef}
-        className={styles.messages}
-        onScroll={handleMessagesScroll}
-      >
-        {hiddenMessageCount > 0 && (
-          <button
-            type="button"
-            className={styles.loadEarlierBtn}
-            onClick={() => setMsgWindowStart(0)}
-          >
-            {t.loadEarlierMessages(hiddenMessageCount)}
-          </button>
-        )}
-        {visibleMessages.map(({ message, index }) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            messageIndex={index}
-            onRollback={handleRollbackRequest}
-            onEditOpen={handleEditOpen}
-            onImplementPlan={(path, name) => void handleImplementPlan(path, name)}
-            onContinue={(messageId) => {
-              void continueAgentRun(messageId, workspace?.path ?? null, buildUserContext())
-            }}
-          />
-        ))}
-        <div ref={bottomRef} />
+      <div className={styles.messagesColumn}>
+        <PromptHeaderBar
+          message={headerTurn?.userMessage ?? null}
+          messageIndex={headerTurn?.userIndex ?? 0}
+          visible={showHeaderCopy}
+          canEdit={!isStreaming}
+          onEditOpen={handleEditOpen}
+        />
+        <div
+          ref={messagesRef}
+          className={styles.messages}
+          onScroll={handleMessagesScroll}
+        >
+          {turns.slice(0, activeTurnIndex).map((turn) => (
+            <ChatTurnChunk
+              key={turn.userMessage.id}
+              turn={turn}
+              onPromptAnchor={registerPromptAnchor(turn.turnIndex)}
+              onEditOpen={handleEditOpen}
+              onImplementPlan={(path, name) => void handleImplementPlan(path, name)}
+              onContinue={(messageId) => {
+                void continueAgentRun(messageId, workspace?.path ?? null, buildUserContext())
+              }}
+            />
+          ))}
+          {turns[activeTurnIndex] && (
+            <ActiveTurnShell
+              key={turns[activeTurnIndex].userMessage.id}
+              turn={turns[activeTurnIndex]}
+              isStreaming={isStreaming}
+              onPromptAnchor={registerPromptAnchor(activeTurnIndex)}
+              onEditOpen={handleEditOpen}
+              onImplementPlan={(path, name) => void handleImplementPlan(path, name)}
+              onContinue={(messageId) => {
+                void continueAgentRun(messageId, workspace?.path ?? null, buildUserContext())
+              }}
+            />
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       <div className={styles.composerWrap}>

@@ -1,0 +1,13 @@
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 8px 12px;
+  border-bottom: 1px solid transparent;
+  background: var(--bg-panel);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  pointer-events: auto;
+}
+

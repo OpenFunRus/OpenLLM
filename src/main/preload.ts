@@ -194,6 +194,14 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('agent:parseToolCalls', text),
   agentClearSession: (sessionId: string): Promise<void> =>
     ipcRenderer.invoke('agent:clearSession', sessionId),
+  agentRestoreSession: (
+    sessionId: string,
+    messages: import('../shared/agent/agentChatMessages').AgentChatMessage[] | null | undefined
+  ): Promise<void> => ipcRenderer.invoke('agent:restoreSession', sessionId, messages),
+  agentGetSessionMessages: (
+    sessionId: string
+  ): Promise<import('../shared/agent/agentChatMessages').AgentChatMessage[] | null> =>
+    ipcRenderer.invoke('agent:getSessionMessages', sessionId),
 
   submitAskQuestion: (payload: {
     runId: string

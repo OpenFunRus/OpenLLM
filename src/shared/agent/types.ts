@@ -158,6 +158,8 @@ export type AgentRunPayload = {
   allowedTools?: readonly string[]
   /** Resume agent loop without adding a new user turn. */
   continueRun?: AgentRunContinue
+  /** UI chat fallback when agentMessages were not persisted (legacy sessions). */
+  priorChatTurns?: Array<{ role: 'user' | 'assistant'; content: string }>
 }
 
 export type AgentToolEvent = {

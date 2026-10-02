@@ -15,7 +15,6 @@ const TERM_ID = 'main'
 interface Props {
   message: ChatMessageType
   messageIndex: number
-  onRollback?: (messageIndex: number) => void
   onEditOpen?: (messageIndex: number) => void
   onImplementPlan?: (filePath: string, planName?: string) => void
   onContinue?: (messageId: string) => void
@@ -24,7 +23,6 @@ interface Props {
 export function ChatMessage({
   message,
   messageIndex,
-  onRollback,
   onEditOpen,
   onImplementPlan,
   onContinue,
@@ -94,14 +92,10 @@ export function ChatMessage({
   const displayContent = showStandaloneContent ? message.content : ''
   const hasContent = displayContent.trim().length > 0
 
-  const handleBubbleClick = () => {
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!canMutate || !onEditOpen) return
     onEditOpen(messageIndex)
-  }
-
-  const handleRollbackClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onRollback?.(messageIndex)
   }
 
   return (
@@ -115,26 +109,14 @@ export function ChatMessage({
           />
         )}
         {isUser ? (
-          <div
-            className={`${styles.userBubbleWrap} ${canMutate ? styles.userBubbleClickable : ''}`}
-            onClick={handleBubbleClick}
-            role={canMutate ? 'button' : undefined}
-            tabIndex={canMutate ? 0 : undefined}
-            onKeyDown={(e) => {
-              if (!canMutate || !onEditOpen) return
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onEditOpen(messageIndex)
-              }
-            }}
-          >
+          <div className={styles.userBubbleWrap}>
             {canMutate && (
               <button
                 type="button"
                 className={styles.userBubbleRollback}
-                onClick={handleRollbackClick}
-                title={t.rollbackToHere}
-                aria-label={t.rollbackToHere}
+                onClick={handleEditClick}
+                title={t.editMessage}
+                aria-label={t.editMessage}
               >
                 <IconUndo size={14} />
               </button>

@@ -148,8 +148,7 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
   if (!hasAnything) return null
 
   const stepThinking = activeStepEntry?.thinking ?? liveThinking ?? ''
-  const thinkingLive = isStreaming && !activeStepEntry?.thinking && streamFocus === 'thinking'
-  const thinkingHeaderOnly = isStreaming && Boolean(stepThinking || thinkingLive) && streamFocus !== 'thinking'
+  const thinkingLive = isStreaming && !activeStepEntry?.thinking && Boolean(liveThinking?.trim())
 
   return (
     <div className={styles.agentTimeline}>
@@ -157,7 +156,10 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
         <div key={`step-${step.step}`} className={styles.agentStepGroup}>
           <div className={styles.stepDivider}>{t.agentStepLabel(step.step)}</div>
           {step.thinking && (
-            <ThinkingBlock text={step.thinking} defaultExpanded={false} />
+            <ThinkingBlock
+              text={step.thinking}
+              durationMs={step.thinkingDurationMs}
+            />
           )}
           {renderInterleavedStep(step, allTools, workspacePath, false, null, null, onImplementPlan)}
         </div>
@@ -170,8 +172,7 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
             <ThinkingBlock
               text={stepThinking}
               live={thinkingLive}
-              forceHeaderOnly={thinkingHeaderOnly}
-              startedAt={message.thinkingStartedAt}
+              durationMs={activeStepEntry?.thinkingDurationMs}
             />
           )}
           {renderInterleavedStep(
@@ -187,12 +188,7 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
       )}
 
       {liveThinking && !currentStep && (
-        <ThinkingBlock
-          text={liveThinking}
-          live={streamFocus === 'thinking'}
-          forceHeaderOnly={streamFocus !== 'thinking'}
-          startedAt={message.thinkingStartedAt}
-        />
+        <ThinkingBlock text={liveThinking} live />
       )}
     </div>
   )

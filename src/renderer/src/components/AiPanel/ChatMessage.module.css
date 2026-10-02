@@ -24,14 +24,6 @@
   white-space: pre-wrap;
 }
 
-.userBubbleClickable {
-  cursor: pointer;
-}
-
-.userBubbleClickable:hover {
-  background: color-mix(in srgb, var(--ai-user-bg) 88%, var(--bg-hover));
-}
-
 .userBubbleRollback {
   position: absolute;
   top: 8px;
@@ -42,23 +34,19 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--border-light);
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
   border-radius: 6px;
-  background: var(--bg-dropdown);
-  color: var(--fg-muted);
+  background: color-mix(in srgb, #000000 18%, transparent);
+  color: #ffffff;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.1s, background 0.1s;
-}
-
-.userBubbleWrap:hover .userBubbleRollback,
-.userBubbleRollback:focus-visible {
   opacity: 1;
+  transition: background 0.1s, border-color 0.1s;
 }
 
-.userBubbleRollback:hover {
-  color: var(--fg-primary);
-  background: var(--bg-hover);
+.userBubbleRollback:hover,
+.userBubbleRollback:focus-visible {
+  background: color-mix(in srgb, #000000 32%, transparent);
+  border-color: color-mix(in srgb, #ffffff 35%, transparent);
 }
 
 .userAttachments {

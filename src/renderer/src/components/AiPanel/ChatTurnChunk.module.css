@@ -1,0 +1,8 @@
+.turn {
+  display: flex;
+  flex-direction: column;
+}
+
+.promptAnchor {
+  padding: 4px 12px 8px;
+}

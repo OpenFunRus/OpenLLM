@@ -82,8 +82,16 @@ export function inferToolStreamBody(name: string, args: Record<string, unknown>,
     return `pattern: ${args.pattern}\npath: ${path}`
   }
   if (name === 'Read' && typeof args.path === 'string') return `Reading ${args.path}…`
-  if (name === 'Glob' && typeof args.glob_pattern === 'string') return `glob: ${args.glob_pattern}`
+  if (name === 'Glob') {
+    if (typeof args.glob_pattern === 'string') return `glob: ${args.glob_pattern}`
+    return ''
+  }
+  if (name === 'ReadLints' || name === 'Grep' || name === 'Read' || name === 'WebSearch' || name === 'WebFetch') {
+    return ''
+  }
   if (name === 'Task' && typeof args.description === 'string') return args.description
-  if (partialRaw?.trim()) return partialRaw.slice(0, 200)
+  if (partialRaw?.trim() && (name === 'Shell' || name === 'AwaitShell')) {
+    return partialRaw.slice(0, 200)
+  }
   return ''
 }

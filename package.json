@@ -9,8 +9,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "postinstall": "electron-rebuild -w node-pty",
-    "build:dir": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+    "build:dir": "npm run build && node scripts/kill-openllm.cjs && electron-builder --dir",
+    "build:win": "npm run build && node scripts/kill-openllm.cjs && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
     "generate:agent-tools": "node scripts/generate-agent-tools.mjs",
     "validate:agent-tools": "node scripts/validate-agent-tools.mjs"
   },

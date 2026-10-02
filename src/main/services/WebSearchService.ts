@@ -27,8 +27,8 @@ export async function runWebSearch(query: string): Promise<WebSearchResponse> {
   try {
     const response = await client.search(query, {
       maxResults: 8,
-      searchDepth: 'basic',
-      includeAnswer: true,
+      searchDepth: apiKey ? 'advanced' : 'basic',
+      includeAnswer: apiKey ? 'advanced' : true,
     })
 
     return {

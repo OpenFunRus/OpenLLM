@@ -88,6 +88,10 @@
   max-height: 280px;
 }
 
+.bodyCustomExpanded {
+  max-height: min(70vh, 560px);
+}
+
 .bodyLive {
   max-height: 6.5em;
   overflow: hidden;

@@ -643,7 +643,11 @@ class LlmService {
   /** Native-tools agent stream — returns structured assistant message + tool_calls. */
   async completeAgentStream(
     messages: AgentChatMessage[],
-    opts: GenerateOptions & { onToken?: (token: string) => void } = {}
+    opts: GenerateOptions & {
+      onToken?: (token: string) => void
+      /** Fires once when reasoning_content ends (content/tool_calls follow). */
+      onReasoningComplete?: (reasoning: string) => void
+    } = {}
   ): Promise<AgentStreamResult> {
     const config = this.getConfig()
     const url = resolveChatUrl(config.url)
@@ -757,6 +761,14 @@ class LlmService {
     let streamRaw = ''
     const parsedChunks: unknown[] = []
     const streamState = createStreamCompletionState()
+    let reasoningCompleteEmitted = false
+    const emitReasoningComplete = (): void => {
+      if (reasoningCompleteEmitted) return
+      const text = streamState.reasoningContent.trim()
+      if (!text) return
+      reasoningCompleteEmitted = true
+      opts.onReasoningComplete?.(streamState.reasoningContent)
+    }
 
     try {
       while (true) {
@@ -791,6 +803,7 @@ class LlmService {
             applyStreamFinishReason(streamState, choice?.finish_reason)
             applyStreamDelta(streamState, choice?.delta)
             if (choice?.delta?.tool_calls?.length) {
+              emitReasoningComplete()
               opts.onToolCallDelta?.(
                 streamState.toolCallAcc.map((tc, index) => ({
                   index,
@@ -802,6 +815,7 @@ class LlmService {
             }
             const chunk = choice?.delta?.content ?? ''
             if (chunk) {
+              emitReasoningComplete()
               opts.onToken?.(chunk)
             }
             const reasoning = choice?.delta?.reasoning_content
@@ -831,6 +845,8 @@ class LlmService {
         finishReason: streamState.finishReason,
       })
     }
+
+    emitReasoningComplete()
 
     const toolCalls = finalizeNativeToolCalls(streamState)
     const assistantMessage: AgentChatMessage = {

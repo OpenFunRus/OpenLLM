@@ -304,8 +304,42 @@ export const ru = {
   expand: 'Развернуть',
   collapse: 'Свернуть',
   thinking: 'Рассуждение',
-  thinkingInProgress: 'Думаю…',
-  thoughtFor: (duration: string) => `Думал ${duration}`,
+  reasoningWithDuration: (duration: string) => `Рассуждение ${duration}`,
+  shellConsoleTitle: (command: string) => `Консоль ${command}`,
+  readLintsTitle: (target: string) => `Проверка ${target}`,
+  readLintsCheckingBody: (target: string) => `Проверяем ${target}`,
+  readLintsNoIssues: 'Ошибок линтера не найдено.',
+  readLintsCheckedFiles: 'Проверенные файлы:',
+  readLintsIssuesHeader: 'Найдены проблемы:',
+  globNoFiles: 'Файлы не найдены',
+  readLintsTargetAll: 'файлов',
+  readLintsTargetFiles: (n: number) => {
+    const mod10 = n % 10
+    const mod100 = n % 100
+    if (mod10 === 1 && mod100 !== 11) return `${n} файл`
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} файла`
+    return `${n} файлов`
+  },
+  writeFilePending: 'Создание файла…',
+  globTitle: (pattern: string) => `Поиск ${pattern}`,
+  globChecking: (pattern: string) => `Ищем файлы ${pattern}`,
+  grepTitle: (pattern: string) => `Поиск «${pattern}»`,
+  grepChecking: (pattern: string) => `Ищем «${pattern}» в коде`,
+  readTitle: (path: string) => `Чтение ${path}`,
+  readChecking: (path: string) => `Читаем ${path}`,
+  webSearchTitle: (query: string) => `Поиск в сети «${query}»`,
+  webSearchChecking: (query: string) => `Ищем в сети «${query}»`,
+  webFetchTitle: (url: string) => `Загрузка ${url}`,
+  webFetchChecking: (url: string) => `Загружаем ${url}`,
+  editNotebookTitle: (path: string) => `Notebook ${path}`,
+  editNotebookChecking: (path: string) => `Редактируем notebook ${path}`,
+  getDynamicToolsTitle: (scope: string) => `MCP-инструменты ${scope}`,
+  getDynamicToolsChecking: (scope: string) => `Получаем MCP-инструменты ${scope}`,
+  callDynamicToolTitle: (label: string) => `MCP ${label}`,
+  callDynamicToolChecking: (label: string) => `Вызываем MCP ${label}`,
+  fetchMcpResourceTitle: (uri: string) => `MCP-ресурс ${uri}`,
+  fetchMcpResourceChecking: (uri: string) => `Загружаем MCP-ресурс ${uri}`,
+  inlineToolChecking: (name: string) => `Выполняем ${name}`,
   agentStepLabel: (step: number) => `Шаг ${step}`,
   todoBubbleTitle: 'Задачи',
   showAllDiffLines: (n: number) =>
@@ -317,6 +351,10 @@ export const ru = {
   resendEdited: 'Отправить',
   loadEarlierMessages: (n: number) =>
     n === 1 ? `Показать ещё ${n} сообщение` : `Показать ещё ${n} сообщений`,
+  scrollForEarlierTurns: 'Прокрутите вверх, чтобы загрузить предыдущие промпты',
+  agentWorking: 'Думаю…',
+  attachedImagesCount: (n: number) =>
+    n === 1 ? '1 вложение' : `${n} вложения`,
   rollbackDone: 'Откат выполнен',
   rollbackConfirmTitle: 'Вернуться к этому сообщению?',
   rollbackConfirmIntro: 'Будут отменены все изменения после этого сообщения.',

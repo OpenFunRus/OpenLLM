@@ -8,10 +8,18 @@ import type {
   AgentTodoItem,
   AgentToolEvent,
   AgentUserContext,
+  ComposerMode,
 } from '@shared/agent/types'
 import { buildAgentStepsFromLegacy, flattenToolEvents, upsertAgentStep } from '@shared/agent/agentSteps'
+import { hasAgentBootstrap } from '@shared/agent/agentSessionBootstrap'
+import { trimAgentMessagesToChat } from '@shared/agent/agentSessionSync'
+import type { AgentChatMessage } from '@shared/agent/agentChatMessages'
 import { revertAgentChanges } from '@shared/agent/chatRollback'
-import { looksLikeAgentStepBuffer } from '@shared/agent/thinkingBlocks'
+import {
+  extractPrimaryThinking,
+  hasOpenThinkingBlock,
+  looksLikeAgentStepBuffer,
+} from '@shared/agent/thinkingBlocks'
 import { useWorkspaceStore } from './workspaceStore'
 import { useUiStore } from './uiStore'
 import { t } from '@shared/i18n'
@@ -51,6 +59,7 @@ interface AiState {
   appendAgentStreamToken: (messageId: string, token: string) => void
   appendAgentReasoningToken: (messageId: string, token: string) => void
   setAgentContextUsage: (usage: AgentCompletionUsage) => void
+  setComposerMode: (mode: ComposerMode) => void
   commitAgentStepThinking: (messageId: string, step: number, thinking: string | null) => void
   setActivePlan: (plan: AgentPlanPayload | null) => void
   clearActivePlan: () => void
@@ -176,12 +185,135 @@ function syncLlmHistory(messages: ChatMessage[]) {
   void window.api.restoreChatHistory(messages.filter((m) => !m.isStreaming))
 }
 
+async function syncAgentSession(session: ChatSession | undefined): Promise<void> {
+  if (!session) return
+  await window.api.agentRestoreSession(session.id, session.agentMessages ?? null)
+}
+
+async function persistAgentMessages(
+  get: () => AiState,
+  set: (partial: Partial<AiState> | ((state: AiState) => Partial<AiState>)) => void,
+  sessionId: string
+): Promise<void> {
+  const agentMessages = await window.api.agentGetSessionMessages(sessionId)
+  if (!agentMessages?.length) return
+
+  const { activeSessionId, closedSessions } = get()
+  set((s) => ({
+    sessions: patchSession(s.sessions, sessionId, (sess) => ({
+      ...sess,
+      agentMessages,
+      updatedAt: Date.now(),
+    })),
+  }))
+  scheduleSave({
+    sessions: get().sessions,
+    activeSessionId,
+    closedSessions,
+  })
+}
+
+async function syncAgentSessionFromChat(
+  get: () => AiState,
+  set: (partial: Partial<AiState> | ((state: AiState) => Partial<AiState>)) => void,
+  sessionId: string,
+  chatMessages: ChatMessage[],
+  storedAgentMessages?: AgentChatMessage[]
+): Promise<void> {
+  const trimmed = trimAgentMessagesToChat(storedAgentMessages, chatMessages)
+  await window.api.agentRestoreSession(sessionId, trimmed ?? null)
+
+  const { activeSessionId, closedSessions } = get()
+  if (trimmed !== storedAgentMessages) {
+    set((s) => ({
+      sessions: patchSession(s.sessions, sessionId, (sess) => ({
+        ...sess,
+        agentMessages: trimmed,
+        updatedAt: Date.now(),
+      })),
+    }))
+    scheduleSave({
+      sessions: get().sessions,
+      activeSessionId,
+      closedSessions,
+    })
+  }
+}
+
 function patchSession(
   sessions: ChatSession[],
   sessionId: string,
   updater: (session: ChatSession) => ChatSession
 ): ChatSession[] {
   return sessions.map((s) => (s.id === sessionId ? updater(s) : s))
+}
+
+type SessionUiFields = Pick<
+  ChatSession,
+  'composerMode' | 'agentPromptTokens' | 'activePlan' | 'agentTodos'
+>
+
+function readActiveSessionUi(
+  state: Pick<AiState, 'agentPromptTokens' | 'activePlan' | 'agentTodos'>
+): SessionUiFields {
+  return {
+    composerMode: useUiStore.getState().composerMode,
+    agentPromptTokens: state.agentPromptTokens,
+    activePlan: state.activePlan,
+    agentTodos: state.agentTodos,
+  }
+}
+
+function mergeSessionUi(session: ChatSession, ui: SessionUiFields): ChatSession {
+  return {
+    ...session,
+    composerMode: ui.composerMode,
+    agentPromptTokens: ui.agentPromptTokens,
+    activePlan: ui.activePlan ?? null,
+    agentTodos: ui.agentTodos ?? [],
+    updatedAt: Date.now(),
+  }
+}
+
+function runtimeStateFromSession(
+  session: ChatSession
+): Pick<AiState, 'agentPromptTokens' | 'activePlan' | 'agentTodos'> {
+  return {
+    agentPromptTokens: session.agentPromptTokens ?? null,
+    activePlan: session.activePlan ?? null,
+    agentTodos: session.agentTodos ?? [],
+  }
+}
+
+function snapshotActiveSessionToSessions(
+  sessions: ChatSession[],
+  activeSessionId: string | null,
+  ui: SessionUiFields
+): ChatSession[] {
+  if (!activeSessionId) return sessions
+  return patchSession(sessions, activeSessionId, (s) => mergeSessionUi(s, ui))
+}
+
+function persistActiveSessionUi(
+  get: () => AiState,
+  set: (partial: Partial<AiState> | ((s: AiState) => Partial<AiState>)) => void,
+  patch?: Partial<SessionUiFields>
+): void {
+  const state = get()
+  const activeSessionId = state.activeSessionId
+  if (!activeSessionId) return
+
+  const ui: SessionUiFields = {
+    ...readActiveSessionUi(state),
+    ...patch,
+  }
+  const sessions = snapshotActiveSessionToSessions(state.sessions, activeSessionId, ui)
+  set({ sessions })
+  scheduleSave({ sessions, activeSessionId, closedSessions: state.closedSessions })
+}
+
+function applySessionUiToRuntime(session: ChatSession): void {
+  useUiStore.getState().setComposerMode(session.composerMode ?? 'agent')
 }
 
 function applyAgentRunResult(message: ChatMessage, result: AgentRunResult): ChatMessage {
@@ -333,6 +465,7 @@ async function launchAgentSessionRun(
             })),
           })
         }
+        await persistAgentMessages(get, set, sessionId)
         setStop(await startBatch({ priorSteps: result.totalSteps ?? 0 }))
         return
       }
@@ -340,6 +473,25 @@ async function launchAgentSessionRun(
 
     finishRun()
     finalizeMessage(assistantId)
+    await persistAgentMessages(get, set, sessionId)
+  }
+
+  const session = get().sessions.find((s) => s.id === sessionId)
+  const hasPersistedAgent = Boolean(
+    session?.agentMessages?.length && hasAgentBootstrap(session.agentMessages)
+  )
+  let priorChatTurns: Array<{ role: 'user' | 'assistant'; content: string }> | undefined
+  if (!hasPersistedAgent && !continueRun && session) {
+    const priorMessages = session.messages.filter(
+      (m) => !m.isStreaming && m.id !== assistantId && m.content.trim()
+    )
+    const lastUserIdx = priorMessages.map((m) => m.role).lastIndexOf('user')
+    if (lastUserIdx > 0) {
+      priorChatTurns = priorMessages.slice(0, lastUserIdx).map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+    }
   }
 
   const startBatch = (batchContinue?: { priorSteps: number }) =>
@@ -354,6 +506,7 @@ async function launchAgentSessionRun(
         },
         images: batchContinue ? undefined : images,
         continueRun: batchContinue,
+        priorChatTurns,
       },
       (step, maxSteps) => beginAgentStep(assistantId, step, maxSteps),
       (token) => appendAgentStreamToken(assistantId, token),
@@ -401,14 +554,28 @@ function commitProseBeforeTool(m: ChatMessage, step: number): ChatMessage {
   return { ...m, agentSteps, agentProseBuffer: '' }
 }
 
+function preferLongerText(next?: string, prev?: string): string | undefined {
+  if (!next?.trim()) return prev
+  if (!prev?.trim()) return next
+  return next.length >= prev.length ? next : prev
+}
+
 function applyToolEventToMessage(m: ChatMessage, event: AgentToolEvent): ChatMessage {
   const prevTools = flattenToolEvents(m.agentSteps)
   const prev = event.toolId ? prevTools.find((t) => t.toolId === event.toolId) : undefined
   const isNewTool = Boolean(event.toolId && !prev)
   let next = isNewTool ? commitProseBeforeTool(m, event.step) : m
   const merged: AgentToolEvent = {
+    ...prev,
     ...event,
-    streamBody: event.streamBody ?? prev?.streamBody,
+    arguments: { ...(prev?.arguments ?? {}), ...event.arguments },
+    filePath: event.filePath ?? prev?.filePath,
+    oldContent: event.oldContent ?? prev?.oldContent,
+    newContent: preferLongerText(event.newContent, prev?.newContent),
+    streamBody:
+      event.status === 'done'
+        ? undefined
+        : preferLongerText(event.streamBody, prev?.streamBody),
     startedAt: event.startedAt ?? prev?.startedAt,
     endedAt: event.status === 'done' ? Date.now() : prev?.endedAt,
   }
@@ -473,6 +640,10 @@ export const useAiStore = create<AiState>((set, get) => ({
   createSession: () => {
     if (get().isStreaming) get().forceAbortStream()
 
+    const state = get()
+    const ui = readActiveSessionUi(state)
+    const sessionsWithSnapshot = snapshotActiveSessionToSessions(state.sessions, state.activeSessionId, ui)
+
     const id = String(_sessionId++)
     const session: ChatSession = {
       id,
@@ -480,27 +651,41 @@ export const useAiStore = create<AiState>((set, get) => ({
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      composerMode: 'agent',
     }
-    set((s) => {
-      const sessions = [...s.sessions, session]
-      scheduleSave({ sessions, activeSessionId: id, closedSessions: s.closedSessions })
-      return { sessions, activeSessionId: id, agentPromptTokens: null, activePlan: null, agentTodos: [] }
+    applySessionUiToRuntime(session)
+    const sessions = [...sessionsWithSnapshot, session]
+    scheduleSave({ sessions, activeSessionId: id, closedSessions: state.closedSessions })
+    set({
+      sessions,
+      activeSessionId: id,
+      agentPromptTokens: null,
+      activePlan: null,
+      agentTodos: [],
     })
     syncLlmHistory([])
     return id
   },
 
   setActiveSession: (id) => {
-    const session = get().sessions.find((s) => s.id === id)
-    if (!session || get().activeSessionId === id) return
-    if (get().isStreaming) get().forceAbortStream()
-    set({ activeSessionId: id, agentPromptTokens: null, activePlan: null, agentTodos: [] })
-    syncLlmHistory(session.messages)
-    scheduleSave({
-      sessions: get().sessions,
+    const state = get()
+    const session = state.sessions.find((s) => s.id === id)
+    if (!session || state.activeSessionId === id) return
+    if (state.isStreaming) get().forceAbortStream()
+
+    const ui = readActiveSessionUi(state)
+    const sessions = snapshotActiveSessionToSessions(state.sessions, state.activeSessionId, ui)
+    const target = sessions.find((s) => s.id === id)!
+    applySessionUiToRuntime(target)
+
+    set({
+      sessions,
       activeSessionId: id,
-      closedSessions: get().closedSessions,
+      ...runtimeStateFromSession(target),
     })
+    syncLlmHistory(target.messages)
+    void syncAgentSession(target)
+    scheduleSave({ sessions, activeSessionId: id, closedSessions: state.closedSessions })
   },
 
   restoreSession: (id) => {
@@ -510,13 +695,20 @@ export const useAiStore = create<AiState>((set, get) => ({
 
     const closedSessions = get().closedSessions.filter((s) => s.id !== id)
     const sessions = [...get().sessions, session]
-    set({ sessions, closedSessions, activeSessionId: id })
+    applySessionUiToRuntime(session)
+    set({
+      sessions,
+      closedSessions,
+      activeSessionId: id,
+      ...runtimeStateFromSession(session),
+    })
     syncLlmHistory(session.messages)
+    void syncAgentSession(session)
     scheduleSave({ sessions, activeSessionId: id, closedSessions })
   },
 
   closeSession: (id) => {
-    const { sessions, closedSessions, activeSessionId, streamingSessionId } = get()
+    let { sessions, closedSessions, activeSessionId, streamingSessionId } = get()
     const session = sessions.find((s) => s.id === id)
     if (!session) return
 
@@ -526,7 +718,12 @@ export const useAiStore = create<AiState>((set, get) => ({
       get().forceAbortStream()
     }
 
-    const updatedSession = get().sessions.find((s) => s.id === id) ?? session
+    if (activeSessionId === id) {
+      const ui = readActiveSessionUi(get())
+      sessions = snapshotActiveSessionToSessions(sessions, id, ui)
+    }
+
+    const updatedSession = sessions.find((s) => s.id === id) ?? session
     const closedCandidate = { ...updatedSession, updatedAt: Date.now() }
     const nextClosed = countUserMessages(closedCandidate) > 0
       ? trimClosedSessions([closedCandidate, ...closedSessions.filter((s) => s.id !== id)])
@@ -541,8 +738,17 @@ export const useAiStore = create<AiState>((set, get) => ({
         messages: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        composerMode: 'agent',
       }
-      set({ sessions: [fresh], closedSessions: nextClosed, activeSessionId: newId })
+      applySessionUiToRuntime(fresh)
+      set({
+        sessions: [fresh],
+        closedSessions: nextClosed,
+        activeSessionId: newId,
+        agentPromptTokens: null,
+        activePlan: null,
+        agentTodos: [],
+      })
       syncLlmHistory([])
       scheduleSave({ sessions: [fresh], activeSessionId: newId, closedSessions: nextClosed })
       return
@@ -552,8 +758,16 @@ export const useAiStore = create<AiState>((set, get) => ({
       ? remaining[remaining.length - 1].id
       : activeSessionId
 
-    set({ sessions: remaining, closedSessions: nextClosed, activeSessionId: nextActive })
     const active = remaining.find((s) => s.id === nextActive)!
+    if (activeSessionId === id) {
+      applySessionUiToRuntime(active)
+    }
+    set({
+      sessions: remaining,
+      closedSessions: nextClosed,
+      activeSessionId: nextActive,
+      ...(activeSessionId === id ? runtimeStateFromSession(active) : {}),
+    })
     syncLlmHistory(active.messages)
     scheduleSave({ sessions: remaining, activeSessionId: nextActive, closedSessions: nextClosed })
   },
@@ -623,7 +837,7 @@ export const useAiStore = create<AiState>((set, get) => ({
       sessions: patchSession(s.sessions, streamingSessionId, (session) => ({
         ...session,
         messages: session.messages.map((m) =>
-          m.id === id ? { ...m, content: m.content + token } : m
+        m.id === id ? { ...m, content: m.content + token } : m
         ),
       })),
     }))
@@ -686,16 +900,34 @@ export const useAiStore = create<AiState>((set, get) => ({
   setAgentContextUsage: (usage) => {
     if (usage.promptTokens > 0) {
       set({ agentPromptTokens: usage.promptTokens })
+      persistActiveSessionUi(get, set, { agentPromptTokens: usage.promptTokens })
     }
   },
 
-  setActivePlan: (plan) => set({ activePlan: plan }),
+  setComposerMode: (mode) => {
+    useUiStore.getState().setComposerMode(mode)
+    persistActiveSessionUi(get, set, { composerMode: mode })
+  },
 
-  clearActivePlan: () => set({ activePlan: null }),
+  setActivePlan: (plan) => {
+    set({ activePlan: plan })
+    persistActiveSessionUi(get, set, { activePlan: plan })
+  },
 
-  setAgentTodos: (todos) => set({ agentTodos: todos }),
+  clearActivePlan: () => {
+    set({ activePlan: null })
+    persistActiveSessionUi(get, set, { activePlan: null })
+  },
 
-  clearAgentTodos: () => set({ agentTodos: [] }),
+  setAgentTodos: (todos) => {
+    set({ agentTodos: todos })
+    persistActiveSessionUi(get, set, { agentTodos: todos })
+  },
+
+  clearAgentTodos: () => {
+    set({ agentTodos: [] })
+    persistActiveSessionUi(get, set, { agentTodos: [] })
+  },
 
   appendAgentStreamToken: (messageId: string, token: string) => {
     const { streamingSessionId, activeSessionId } = get()
@@ -720,6 +952,17 @@ export const useAiStore = create<AiState>((set, get) => ({
         }),
       })),
     }))
+
+    const session = get().sessions.find((s) => s.id === sessionId)
+    const message = session?.messages.find((m) => m.id === messageId)
+    const buf = message?.agentStreamBuffer
+    const step = message?.streamingAgentStep
+    if (!buf || !step || message.agentSteps?.find((s) => s.step === step)?.thinking) return
+    if (hasOpenThinkingBlock(buf)) return
+    const closedThinking = extractPrimaryThinking(buf)
+    if (closedThinking?.trim()) {
+      get().commitAgentStepThinking(messageId, step, closedThinking)
+    }
   },
 
   commitAgentStepThinking: (messageId: string, step: number, thinking: string | null) => {
@@ -748,17 +991,28 @@ export const useAiStore = create<AiState>((set, get) => ({
         ...session,
         messages: session.messages.map((m) => {
           if (m.id !== messageId) return m
+          const streamThinking = m.agentStreamBuffer
+            ? extractPrimaryThinking(m.agentStreamBuffer)?.trim() || null
+            : null
           const mergedThinking =
             thinking?.trim() ||
             m.agentReasoningBuffer?.trim() ||
+            streamThinking ||
             null
+          const existingStep = m.agentSteps?.find((s) => s.step === step)
+          const thinkingDurationMs =
+            existingStep?.thinkingDurationMs ??
+            (m.thinkingStartedAt ? Date.now() - m.thinkingStartedAt : undefined)
           const agentSteps = mergedThinking
-            ? upsertAgentStep(m.agentSteps, step, { thinking: mergedThinking })
+            ? upsertAgentStep(m.agentSteps, step, {
+                thinking: mergedThinking,
+                thinkingDurationMs,
+              })
             : m.agentSteps
           return {
             ...m,
             agentSteps,
-            agentStreamBuffer: '',
+            agentStreamBuffer: m.isStreaming ? (m.agentStreamBuffer ?? '') : '',
             agentReasoningBuffer: '',
           }
         }),
@@ -977,8 +1231,15 @@ export const useAiStore = create<AiState>((set, get) => ({
       }
 
       const active = sessions.find((s) => s.id === activeSessionId)!
-      set({ sessions, activeSessionId, closedSessions })
+      applySessionUiToRuntime(active)
+      set({
+        sessions,
+        activeSessionId,
+        closedSessions,
+        ...runtimeStateFromSession(active),
+      })
       syncLlmHistory(active.messages)
+      await syncAgentSession(active)
     } catch { /* non-fatal */ }
   },
 
@@ -1111,14 +1372,17 @@ export const useAiStore = create<AiState>((set, get) => ({
       sessions: patchSession(s.sessions, activeSessionId, (sess) => ({
         ...sess,
         messages: truncated,
+        agentPromptTokens: null,
+        activePlan: null,
+        agentTodos: [],
         updatedAt: Date.now(),
       })),
       agentPromptTokens: null,
       activePlan: null,
       agentTodos: [],
     }))
+    await syncAgentSessionFromChat(get, set, activeSessionId, truncated, session.agentMessages)
     syncLlmHistory(truncated)
-    void window.api.agentClearSession(activeSessionId)
     scheduleSave({
       sessions: get().sessions,
       activeSessionId,
@@ -1161,14 +1425,17 @@ export const useAiStore = create<AiState>((set, get) => ({
       sessions: patchSession(s.sessions, activeSessionId, (sess) => ({
         ...sess,
         messages: truncated,
+        agentPromptTokens: null,
+        activePlan: null,
+        agentTodos: [],
         updatedAt: Date.now(),
       })),
       agentPromptTokens: null,
       activePlan: null,
       agentTodos: [],
     }))
+    await syncAgentSessionFromChat(get, set, activeSessionId, truncated, session.agentMessages)
     syncLlmHistory(truncated)
-    void window.api.agentClearSession(activeSessionId)
     scheduleSave({
       sessions: get().sessions,
       activeSessionId,

@@ -4,6 +4,8 @@ import type { AgentToolEvent } from './types'
 export type AgentStepEntry = {
   step: number
   thinking?: string
+  /** Wall-clock ms spent reasoning in this step (shown when collapsed). */
+  thinkingDurationMs?: number
   /** Prose segments before tool[0], tool[1], … (interleaved in timeline). */
   proseBlocks?: string[]
   tools: AgentToolEvent[]
@@ -12,7 +14,12 @@ export type AgentStepEntry = {
 export function upsertAgentStep(
   steps: AgentStepEntry[] | undefined,
   step: number,
-  patch: { thinking?: string; tool?: AgentToolEvent; proseBlock?: string }
+  patch: {
+    thinking?: string
+    thinkingDurationMs?: number
+    tool?: AgentToolEvent
+    proseBlock?: string
+  }
 ): AgentStepEntry[] {
   const list = [...(steps ?? [])]
   const idx = list.findIndex((s) => s.step === step)
@@ -21,6 +28,7 @@ export function upsertAgentStep(
     list.push({
       step,
       thinking: patch.thinking,
+      thinkingDurationMs: patch.thinkingDurationMs,
       proseBlocks: patch.proseBlock ? [patch.proseBlock] : undefined,
       tools: patch.tool ? [patch.tool] : [],
     })
@@ -41,6 +49,7 @@ export function upsertAgentStep(
     list[idx] = {
       ...current,
       thinking: patch.thinking ?? current.thinking,
+      thinkingDurationMs: patch.thinkingDurationMs ?? current.thinkingDurationMs,
       proseBlocks: patch.proseBlock
         ? [...(current.proseBlocks ?? []), patch.proseBlock]
         : current.proseBlocks,

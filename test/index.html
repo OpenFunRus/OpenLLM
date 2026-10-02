@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐍 Змейка</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="title">🐍 ЗМЕЙКА</h1>
+            <div class="score-board">
+                <div class="score-item">
+                    <span class="score-label">Счёт</span>
+                    <span id="score" class="score-value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Рекорд</span>
+                    <span id="high-score" class="score-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+            <div id="overlay" class="overlay">
+                <h2 id="overlay-title">Змейка</h2>
+                <p id="overlay-text">Нажми, чтобы начать</p>
+                <button id="start-btn" class="btn">Играть</button>
+            </div>
+        </div>
+
+        <div class="controls-hint">
+            <span>⌨️ Стрелки / WASD — движение</span>
+            <span>⏸ Пробел — пауза</span>
+        </div>
+
+        <div class="mobile-controls">
+            <button class="ctrl-btn up" data-dir="up">▲</button>
+            <div class="ctrl-row">
+                <button class="ctrl-btn left" data-dir="left">◀</button>
+                <button class="ctrl-btn right" data-dir="right">▶</button>
+            </div>
+            <button class="ctrl-btn down" data-dir="down">▼</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

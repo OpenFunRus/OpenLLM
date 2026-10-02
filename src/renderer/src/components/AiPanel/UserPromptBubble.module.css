@@ -1,0 +1,53 @@
+.bubble {
+  position: relative;
+  box-sizing: border-box;
+  background: var(--ai-user-bg);
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-height: calc(1.45em * 4 + 20px);
+  overflow: hidden;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  color: var(--fg-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.attachHint {
+  margin-bottom: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+
+.rollback {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, #000000 18%, transparent);
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 1;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.rollback:hover,
+.rollback:focus-visible {
+  background: color-mix(in srgb, #000000 32%, transparent);
+  border-color: color-mix(in srgb, #ffffff 35%, transparent);
+}

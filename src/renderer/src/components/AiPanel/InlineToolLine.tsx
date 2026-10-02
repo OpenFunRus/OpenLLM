@@ -1,19 +1,37 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
-import { formatReasoningDuration } from '@shared/agent/reasoningDuration'
-import { t } from '@shared/i18n'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { IconChevronDown, IconChevronRight } from '../Sidebar/ExplorerIcons'
 import styles from './ThinkingBlock.module.css'
 
 interface Props {
-  text: string
-  live?: boolean
-  durationMs?: number
+  title: string
+  pendingBody: string
+  result: string
+  live: boolean
 }
 
-export function ThinkingBlock({ text, live = false, durationMs }: Props): JSX.Element | null {
+function AnimatedDots(): JSX.Element {
+  return (
+    <span className={styles.dots} aria-hidden>
+      <span>.</span>
+      <span>.</span>
+      <span>.</span>
+    </span>
+  )
+}
+
+export function InlineToolLine({ title, pendingBody, result, live }: Props): JSX.Element {
   const [expanded, setExpanded] = useState(false)
-  const wasLive = useRef(live)
+  const wasLive = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+
+  const body: ReactNode = live ? (
+    <>
+      {pendingBody}
+      <AnimatedDots />
+    </>
+  ) : (
+    result
+  )
 
   useEffect(() => {
     if (live) {
@@ -28,16 +46,9 @@ export function ThinkingBlock({ text, live = false, durationMs }: Props): JSX.El
     if (!live) return
     const el = bodyRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [text, live])
-
-  if (!text.trim()) return null
+  }, [body, live])
 
   const showBody = live || expanded
-  const label = live
-    ? t.thinking
-    : durationMs
-      ? formatReasoningDuration(durationMs)
-      : t.thinking
 
   const toggleExpanded = (e: MouseEvent) => {
     e.stopPropagation()
@@ -56,11 +67,11 @@ export function ThinkingBlock({ text, live = false, durationMs }: Props): JSX.El
         <span className={styles.chevron}>
           {showBody ? <IconChevronDown /> : <IconChevronRight />}
         </span>
-        <span className={styles.label}>{label}</span>
+        <span className={styles.label}>{title}</span>
       </button>
       {showBody && (
-        <div ref={bodyRef} className={styles.body}>
-          {text}
+        <div ref={bodyRef} className={`${styles.body} ${styles.bodyMono}`}>
+          {body}
         </div>
       )}
     </div>

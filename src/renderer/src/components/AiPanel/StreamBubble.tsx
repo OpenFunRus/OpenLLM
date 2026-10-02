@@ -8,7 +8,7 @@ export type StreamBubbleStatus = 'streaming' | 'running' | 'done' | 'error'
 interface Props {
   title: ReactNode
   body?: string
-  bodyNode?: ReactNode | ((expanded: boolean) => ReactNode)
+  bodyNode?: ReactNode | ((showFull: boolean) => ReactNode)
   live?: boolean
   status?: StreamBubbleStatus
   defaultExpanded?: boolean
@@ -39,27 +39,31 @@ export function StreamBubble({
   bodyClassName,
 }: Props): JSX.Element {
   const [expanded, setExpanded] = useState(defaultExpanded)
-  const [userExpanded, setUserExpanded] = useState(false)
+  /** User manually toggled chevron — don't auto-collapse/expand over their choice. */
+  const userToggled = useRef(false)
+  const wasActive = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
 
   const isActive = !forceHeaderOnly && (live || status === 'streaming' || status === 'running')
   const showBody = !forceHeaderOnly && (pinPreview || expanded || isActive)
   const showFullBody = expanded && (!isActive || pinPreview)
+  const showFullForNode = showFullBody || isActive
   const displayBody = showFullBody ? body : tailText(body, previewLines)
 
   useEffect(() => {
-    if (!isActive) return
     const el = bodyRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [body, isActive])
+    if (!el) return
+    if (isActive) {
+      el.scrollTop = el.scrollHeight
+    } else if (showFullBody) {
+      el.scrollTop = 0
+    }
+  }, [body, isActive, showFullBody, showFullForNode])
 
   const toggleExpanded = (e: MouseEvent) => {
     e.stopPropagation()
-    setExpanded((v) => {
-      const next = !v
-      if (next) setUserExpanded(true)
-      return next
-    })
+    userToggled.current = true
+    setExpanded((v) => !v)
   }
 
   const handleTitleClick = (e: MouseEvent) => {
@@ -70,15 +74,16 @@ export function StreamBubble({
 
   useEffect(() => {
     if (isActive) {
-      setExpanded(true)
-    } else if (!userExpanded && !pinPreview) {
-      setExpanded(defaultExpanded)
+      if (!userToggled.current) setExpanded(true)
+    } else if (wasActive.current && !userToggled.current) {
+      setExpanded(pinPreview ? false : defaultExpanded)
     }
-  }, [isActive, defaultExpanded, userExpanded, pinPreview])
+    wasActive.current = isActive
+  }, [isActive, defaultExpanded, pinPreview])
 
   const chevronExpanded = pinPreview ? expanded : (expanded || isActive)
   const renderedBodyNode =
-    typeof bodyNode === 'function' ? bodyNode(expanded) : bodyNode
+    typeof bodyNode === 'function' ? bodyNode(showFullForNode) : bodyNode
 
   return (
     <div className={`${styles.wrapper} ${className ?? ''}`}>
@@ -108,7 +113,7 @@ export function StreamBubble({
       {showBody && (renderedBodyNode || displayBody || isActive || pinPreview) && (
         <div
           ref={bodyRef}
-          className={`${renderedBodyNode ? styles.bodyCustom : styles.body} ${isActive && !renderedBodyNode ? styles.bodyLive : ''} ${bodyClassName ?? ''}`}
+          className={`${renderedBodyNode ? styles.bodyCustom : styles.body} ${showFullForNode && renderedBodyNode ? styles.bodyCustomExpanded : ''} ${isActive && !renderedBodyNode ? styles.bodyLive : ''} ${bodyClassName ?? ''}`}
         >
           {renderedBodyNode ?? (
             <>
