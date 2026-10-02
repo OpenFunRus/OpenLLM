@@ -1,6 +1,5 @@
 import type { AgentContentPart } from './agentChatMessages'
 import type { AgentMode, AgentUserContext } from './types'
-import { buildModeReminder } from './modeReminders'
 
 /** Format local timestamp like Cursor: `Wednesday, Sep 30, 2026, 2:16 PM (UTC+4)` */
 export function formatLocalTimestamp(date: Date, timezoneOffsetMinutes?: number): string {
@@ -192,19 +191,13 @@ Note: these files may or may not be relevant to the current conversation. Use th
   return `<open_and_recently_viewed_files>\n${lines.join('\n')}\n</open_and_recently_viewed_files>`
 }
 
-/** Per-turn user message — multipart content (Cursor message #3+). */
+/** Per-turn user message — multipart content (Cursor message #3+). Mode is set via system prompt only. */
 export function buildTurnUserMessage(
   userQuery: string,
   ctx: AgentUserContext,
-  mode: AgentMode = 'agent',
   now = new Date()
 ): AgentContentPart[] {
   const parts: AgentContentPart[] = [{ type: 'text', text: buildOpenFilesBlock(ctx) }]
-
-  const reminder = buildModeReminder(mode)
-  if (reminder) {
-    parts.push({ type: 'text', text: `\n\n${reminder}` })
-  }
 
   parts.push({
     type: 'text',

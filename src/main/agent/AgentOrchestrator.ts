@@ -21,6 +21,7 @@ import {
   hasAgentBootstrap,
   setAgentSessionMessages,
 } from './agentSessionStore'
+import { cleanModeRemindersFromHistory } from '../../shared/agent/modeReminders'
 import { buildAgentSystemPrompt } from '../../shared/agent/promptBuilder'
 import { parseToolCalls } from '../../shared/agent/parsers/xmlToolCallParser'
 import { nativeToolCallsToParsed } from '../../shared/agent/nativeToolCalls'
@@ -238,6 +239,13 @@ export class AgentOrchestrator {
     const existing = getAgentSessionMessages(sessionId)
     let messages: AgentChatMessage[]
 
+    const appendTurnUserMessage = (query: string) => {
+      messages.push({
+        role: 'user',
+        content: buildTurnUserMessage(query, userContext),
+      })
+    }
+
     if (payload.continueRun) {
       if (!existing || !hasAgentBootstrap(existing)) {
         throw new Error('Cannot continue agent run: session not found')
@@ -245,12 +253,9 @@ export class AgentOrchestrator {
       messages = [...existing]
       messages[0] = { role: 'system', content: buildAgentSystemPrompt(currentMode) }
     } else if (existing && hasAgentBootstrap(existing)) {
-      messages = [...existing]
+      messages = cleanModeRemindersFromHistory([...existing])
       messages[0] = { role: 'system', content: buildAgentSystemPrompt(currentMode) }
-      messages.push({
-        role: 'user',
-        content: buildTurnUserMessage(payload.query, userContext, currentMode),
-      })
+      appendTurnUserMessage(payload.query)
     } else {
       messages = [
         { role: 'system', content: buildAgentSystemPrompt(currentMode) },
@@ -261,10 +266,7 @@ export class AgentOrchestrator {
         if (!text) continue
         messages.push({ role: turn.role, content: text })
       }
-      messages.push({
-        role: 'user',
-        content: buildTurnUserMessage(payload.query, userContext, currentMode),
-      })
+      appendTurnUserMessage(payload.query)
     }
 
     const toolEvents: AgentToolEvent[] = []

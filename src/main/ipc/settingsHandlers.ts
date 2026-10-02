@@ -20,12 +20,36 @@ const getChatHistoryPath = () => {
 
 
 
-const getChatSessionsPath = () => {
-
+const getChatSessionsPath = (workspacePath?: string | null) => {
   const { app } = require('electron') as { app: App }
+  if (workspacePath) {
+    return path.join(workspacePath, '.openllm', 'chat-sessions.json')
+  }
+  return path.join(app.getPath('userData'), 'chat-sessions-no-workspace.json')
+}
 
+const getLegacyChatSessionsPath = () => {
+  const { app } = require('electron') as { app: App }
   return path.join(app.getPath('userData'), 'chat-sessions.json')
+}
 
+function ensureWorkspaceOpenllmDir(workspacePath: string): void {
+  fs.mkdirSync(path.join(workspacePath, '.openllm'), { recursive: true })
+}
+
+function readChatSessionsFile(filePath: string): ChatSessionsData | null {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf-8')
+    const parsed = JSON.parse(raw) as ChatSessionsData
+    if (parsed.sessions && Array.isArray(parsed.sessions)) {
+      return {
+        sessions: parsed.sessions,
+        activeSessionId: parsed.activeSessionId ?? null,
+        closedSessions: parsed.closedSessions ?? [],
+      }
+    }
+  } catch { /* fall through */ }
+  return null
 }
 
 
@@ -104,38 +128,24 @@ export function registerSettingsHandlers(): void {
 
 
 
-  ipcMain.handle('chat:saveSessions', (_e, data: ChatSessionsData) => {
-
+  ipcMain.handle('chat:saveSessions', (_e, data: ChatSessionsData, workspacePath?: string | null) => {
     try {
-
-      fs.writeFileSync(getChatSessionsPath(), JSON.stringify(data, null, 2), 'utf-8')
-
+      if (workspacePath) ensureWorkspaceOpenllmDir(workspacePath)
+      fs.writeFileSync(getChatSessionsPath(workspacePath), JSON.stringify(data, null, 2), 'utf-8')
     } catch { /* non-fatal */ }
-
   })
 
+  ipcMain.handle('chat:loadSessions', (_e, workspacePath?: string | null): ChatSessionsData => {
+    const primary = readChatSessionsFile(getChatSessionsPath(workspacePath))
+    if (primary) return primary
 
+    if (!workspacePath) {
+      const legacySessions = readChatSessionsFile(getLegacyChatSessionsPath())
+      if (legacySessions) return legacySessions
+      return migrateLegacyHistory()
+    }
 
-  ipcMain.handle('chat:loadSessions', (): ChatSessionsData => {
-
-    try {
-
-      const raw = fs.readFileSync(getChatSessionsPath(), 'utf-8')
-
-      const parsed = JSON.parse(raw) as ChatSessionsData
-
-      if (parsed.sessions && Array.isArray(parsed.sessions)) {
-        return {
-          sessions: parsed.sessions,
-          activeSessionId: parsed.activeSessionId ?? null,
-          closedSessions: parsed.closedSessions ?? [],
-        }
-      }
-
-    } catch { /* fall through to migration */ }
-
-    return migrateLegacyHistory()
-
+    return { sessions: [], activeSessionId: null, closedSessions: [] }
   })
 
 

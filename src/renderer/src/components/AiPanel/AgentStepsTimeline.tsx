@@ -70,6 +70,7 @@ function renderInterleavedStep(
           key={`prose-${step.step}-0`}
           text={text}
           live={proseLive && streamFocus === 'prose'}
+          workspacePath={workspacePath}
         />
       )
     }
@@ -79,7 +80,13 @@ function renderInterleavedStep(
   tools.forEach((tool, index) => {
     const prose = proseBlocks[index]?.trim()
     if (prose) {
-      nodes.push(<AgentProseBlock key={`prose-${step.step}-${index}`} text={prose} />)
+      nodes.push(
+        <AgentProseBlock
+          key={`prose-${step.step}-${index}`}
+          text={prose}
+          workspacePath={workspacePath}
+        />
+      )
     }
     const toolId = tool.toolId ?? `${step.step}-${tool.name}-${index}`
     nodes.push(
@@ -97,13 +104,20 @@ function renderInterleavedStep(
   if (!hasCreatePlan) {
     const trailing = proseBlocks[tools.length]?.trim()
     if (trailing) {
-      nodes.push(<AgentProseBlock key={`prose-${step.step}-tail`} text={trailing} />)
+      nodes.push(
+        <AgentProseBlock
+          key={`prose-${step.step}-tail`}
+          text={trailing}
+          workspacePath={workspacePath}
+        />
+      )
     } else if (liveProse?.trim()) {
       nodes.push(
         <AgentProseBlock
           key={`prose-${step.step}-live`}
           text={liveProse}
           live={isStreaming && streamFocus === 'prose'}
+          workspacePath={workspacePath}
         />
       )
     }

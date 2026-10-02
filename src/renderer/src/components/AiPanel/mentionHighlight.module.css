@@ -1,0 +1,7 @@
+.mention {
+  background: color-mix(in srgb, var(--accent-blue) 22%, transparent);
+  color: var(--accent-blue);
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}

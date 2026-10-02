@@ -29,7 +29,6 @@ export function TitleBar(): JSX.Element {
       >
         <span className={styles.searchIcon}>⌕</span>
         <span className={styles.searchText}>{title}</span>
-        <span className={styles.searchHint}>Ctrl+Shift+P</span>
       </button>
       <div className={`${styles.controls} no-drag`}>
         <button className={styles.ctrl} onClick={() => window.api.minimize()} title={t.minimize}>

@@ -1,15 +1,11 @@
-import { useWorkspaceStore } from '../../store/workspaceStore'
 import { useEditorStore } from '../../store/editorStore'
-import { useGitStore } from '../../store/gitStore'
 import { useAiStore } from '../../store/aiStore'
 import { useUiStore } from '../../store/uiStore'
 import { t } from '../../../../shared/i18n'
 import styles from './StatusBar.module.css'
 
 export function StatusBar(): JSX.Element {
-  const { current } = useWorkspaceStore()
   const { tabs, activeTabId, cursorLine, cursorColumn } = useEditorStore()
-  const { info } = useGitStore()
   const { isModelLoaded, modelName } = useAiStore()
   const { statusMessage, toggleTerminal, toggleAiPanel, setModelManagerOpen, toggleTheme } = useUiStore()
 
@@ -18,12 +14,6 @@ export function StatusBar(): JSX.Element {
   return (
     <div className={styles.bar}>
       <div className={styles.left}>
-        {info?.branch && (
-          <button className={styles.item} title={t.branch}>
-            <span className={styles.icon}>⎇</span>
-            <span>{info.branch}</span>
-          </button>
-        )}
         {statusMessage && (
           <span className={styles.item}>{statusMessage}</span>
         )}

@@ -1,28 +1,21 @@
 import fs from 'fs'
 import path from 'path'
-import type { IpcMain, Dialog } from 'electron'
+import type { IpcMain, Dialog, Shell } from 'electron'
 import { fileService } from '../services/FileService'
 import { workspaceService } from '../services/WorkspaceService'
 import type { ImageAttachment } from '../../shared/types'
-
-const ATTACHMENT_EXTENSIONS = [
-  'xbm', 'tif', 'jfif', 'pjp', 'apng', 'jpe', 'jpeg', 'heif', 'ico', 'tiff',
-  'webp', 'svgz', 'jpg', 'heic', 'gif', 'svg', 'png', 'bmp', 'pjpeg', 'avif', 'pdf',
-]
-
-function mimeFromExt(ext: string): string {
-  const map: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg', jpe: 'image/jpeg', jfif: 'image/jpeg', pjp: 'image/jpeg', pjpeg: 'image/jpeg',
-    png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', ico: 'image/x-icon',
-    svg: 'image/svg+xml', svgz: 'image/svg+xml', tif: 'image/tiff', tiff: 'image/tiff',
-    heic: 'image/heic', heif: 'image/heif', avif: 'image/avif', apng: 'image/apng', xbm: 'image/x-xbitmap',
-    pdf: 'application/pdf',
-  }
-  return map[ext] ?? 'application/octet-stream'
-}
+import {
+  MEDIA_ATTACHMENT_EXTENSIONS,
+  fileExtensionFromPath,
+  mimeFromExt,
+} from '../../shared/attachmentUtils'
 
 export function registerFsHandlers(): void {
-  const { ipcMain, dialog } = require('electron') as { ipcMain: IpcMain; dialog: Dialog }
+  const { ipcMain, dialog, shell } = require('electron') as {
+    ipcMain: IpcMain
+    dialog: Dialog
+    shell: Shell
+  }
 
   ipcMain.handle('fs:tree', (_e, dirPath: string) => fileService.getFileTree(dirPath))
   ipcMain.handle('fs:read', (_e, filePath: string) => fileService.readFile(filePath))
@@ -32,6 +25,7 @@ export function registerFsHandlers(): void {
   ipcMain.handle('fs:delete', (_e, targetPath: string) => fileService.delete(targetPath))
   ipcMain.handle('fs:removeIfEmpty', (_e, dirPath: string) => fileService.removeIfEmpty(dirPath))
   ipcMain.handle('fs:rename', (_e, oldPath: string, newPath: string) => fileService.rename(oldPath, newPath))
+  ipcMain.handle('fs:copy', (_e, sourcePath: string, destPath: string) => fileService.copy(sourcePath, destPath))
 
   ipcMain.handle('workspace:openDialog', async () => {
     const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
@@ -47,6 +41,8 @@ export function registerFsHandlers(): void {
   })
   ipcMain.handle('workspace:recent', () => workspaceService.getRecent())
   ipcMain.handle('workspace:close', () => workspaceService.close())
+
+  ipcMain.handle('shell:openPath', (_e, targetPath: string) => shell.openPath(targetPath))
 
   // File watching: renderer subscribes and gets a cleanup id
   const watchCleanups = new Map<string, () => void>()
@@ -69,12 +65,12 @@ export function registerFsHandlers(): void {
   ipcMain.handle('dialog:pickImages', async (): Promise<ImageAttachment[]> => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Images & PDF', extensions: ATTACHMENT_EXTENSIONS }],
+      filters: [{ name: 'Images & PDF', extensions: [...MEDIA_ATTACHMENT_EXTENSIONS] }],
     })
     if (result.canceled || result.filePaths.length === 0) return []
 
     return result.filePaths.map((filePath) => {
-      const ext = path.extname(filePath).slice(1).toLowerCase()
+      const ext = fileExtensionFromPath(filePath)
       return {
         path: filePath,
         name: path.basename(filePath),
@@ -82,5 +78,15 @@ export function registerFsHandlers(): void {
         base64: fs.readFileSync(filePath).toString('base64'),
       }
     })
+  })
+
+  ipcMain.handle('fs:readAttachment', (_e, filePath: string): ImageAttachment => {
+    const ext = fileExtensionFromPath(filePath)
+    return {
+      path: filePath,
+      name: path.basename(filePath),
+      mimeType: mimeFromExt(ext),
+      base64: fs.readFileSync(filePath).toString('base64'),
+    }
   })
 }

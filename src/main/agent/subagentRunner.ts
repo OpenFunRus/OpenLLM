@@ -56,7 +56,7 @@ export async function runLocalSubagent(input: {
     input.agentId ??
     (input.resume && input.resume !== 'self' ? input.resume : crypto.randomUUID())
   const sessionId = `subagent__${input.parentSessionId}__${agentId}`
-  const mode: AgentMode = input.subagentType === 'explore' ? 'ask' : 'agent'
+  const mode: AgentMode = input.subagentType === 'explore' ? 'chat' : 'agent'
 
   const parentShell = getShellService(input.parentSessionId, input.userContext.workspacePath)
 

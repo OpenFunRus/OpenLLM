@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import styles from './ChatMessage.module.css'
+import { parseCodeFenceHeader } from '../Sidebar/explorerPathUtils'
 import { DiffCodeBlock } from './DiffCodeBlock'
 import { t } from '../../../../shared/i18n'
 
@@ -233,9 +234,8 @@ export function renderMessageContent(
 
     const lines = seg.split('\n')
     const header = lines[0].replace('```', '').trim()
-    const colonIdx = header.indexOf(':')
-    const lang = colonIdx > 0 ? header.slice(0, colonIdx) : header
-    let filePath = colonIdx > 0 ? header.slice(colonIdx + 1).trim() : null
+    const { lang, filePath: headerPath } = parseCodeFenceHeader(header)
+    let filePath = headerPath
     const code = lines.slice(1, -1).join('\n')
 
     if (!filePath && i > 0) {

@@ -16,3 +16,18 @@ export function setAgentSessionMessages(sessionId: string, messages: AgentChatMe
 export function clearAgentSession(sessionId: string): void {
   sessions.delete(sessionId)
 }
+
+export function clearAllAgentSessions(): void {
+  sessions.clear()
+}
+
+export function restoreAgentSession(
+  sessionId: string,
+  messages: AgentChatMessage[] | null | undefined
+): void {
+  if (!messages?.length) {
+    clearAgentSession(sessionId)
+    return
+  }
+  setAgentSessionMessages(sessionId, messages)
+}

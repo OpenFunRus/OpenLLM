@@ -16,16 +16,48 @@
   color: var(--fg-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
   overflow: hidden;
+  max-height: calc(1.45em * 4);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .attachHint {
-  margin-bottom: 6px;
   font-size: var(--font-size-xs);
   color: var(--fg-muted);
+}
+
+.imageThumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.imageThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pdfBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-secondary);
 }
 
 .rollback {

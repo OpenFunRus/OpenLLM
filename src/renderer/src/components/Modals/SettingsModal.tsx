@@ -5,7 +5,7 @@ import { AGENT_SETTINGS_DEFAULTS } from '../../../../shared/agent/agentSettings'
 import { t } from '../../../../shared/i18n'
 import styles from './SettingsModal.module.css'
 
-type Section = 'general' | 'editor' | 'agent' | 'mcp' | 'git' | 'github'
+type Section = 'agent' | 'mcp'
 
 type McpConfigFile = {
   mcpServers?: Record<string, { command: string; args?: string[]; env?: Record<string, string> }>
@@ -14,8 +14,8 @@ type McpConfigFile = {
 const DEFAULT_MCP_JSON = '{\n  "mcpServers": {\n    "example": {\n      "command": "npx",\n      "args": ["-y", "my-mcp-server"]\n    }\n  }\n}\n'
 
 export function SettingsModal(): JSX.Element | null {
-  const { settingsOpen, setSettingsOpen, setTheme, setEditorFontSize, setEditorTabSize } = useUiStore()
-  const [section, setSection] = useState<Section>('general')
+  const { settingsOpen, setSettingsOpen } = useUiStore()
+  const [section, setSection] = useState<Section>('agent')
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [mcpScope, setMcpScope] = useState<'user' | 'workspace'>('user')
   const [mcpJson, setMcpJson] = useState(DEFAULT_MCP_JSON)
@@ -50,12 +50,6 @@ export function SettingsModal(): JSX.Element | null {
   const save = async () => {
     if (!settings) return
     const keys: (keyof AppSettings)[] = [
-      'theme',
-      'editorFontSize',
-      'editorTabSize',
-      'gitAuthorName',
-      'gitAuthorEmail',
-      'githubPat',
       'agentAutoApply',
       'agentMaxSteps',
       'agentMaxWallTimeMin',
@@ -76,20 +70,13 @@ export function SettingsModal(): JSX.Element | null {
       }
     }
 
-    setTheme(settings.theme)
-    setEditorFontSize(settings.editorFontSize)
-    setEditorTabSize(settings.editorTabSize)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
 
   const navItems: { id: Section; label: string }[] = [
-    { id: 'general', label: t.sectionGeneral },
-    { id: 'editor', label: t.sectionEditor },
     { id: 'agent', label: t.sectionAgent },
     { id: 'mcp', label: t.sectionMcp },
-    { id: 'git', label: t.sectionGit },
-    { id: 'github', label: t.sectionGithub },
   ]
 
   return (
@@ -114,48 +101,6 @@ export function SettingsModal(): JSX.Element | null {
           </nav>
 
           <div className={styles.content}>
-            {section === 'general' && (
-              <div className={styles.group}>
-                <label className={styles.label}>{t.theme}</label>
-                <select
-                  className={styles.select}
-                  value={settings.theme}
-                  onChange={(e) => update('theme', e.target.value as 'dark' | 'light')}
-                >
-                  <option value="dark">{t.themeDark}</option>
-                  <option value="light">{t.themeLight}</option>
-                </select>
-              </div>
-            )}
-
-            {section === 'editor' && (
-              <>
-                <div className={styles.group}>
-                  <label className={styles.label}>{t.fontSize}</label>
-                  <input
-                    className={styles.input}
-                    type="number"
-                    min={10}
-                    max={32}
-                    value={settings.editorFontSize}
-                    onChange={(e) => update('editorFontSize', Number(e.target.value))}
-                  />
-                </div>
-                <div className={styles.group}>
-                  <label className={styles.label}>{t.tabSize}</label>
-                  <select
-                    className={styles.select}
-                    value={settings.editorTabSize}
-                    onChange={(e) => update('editorTabSize', Number(e.target.value))}
-                  >
-                    {[2, 4, 8].map((v) => (
-                      <option key={v} value={v}>{t.spaces(v)}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-
             {section === 'agent' && (
               <>
                 <div className={styles.group}>
@@ -260,44 +205,6 @@ export function SettingsModal(): JSX.Element | null {
                   <span className={styles.hint}>{t.mcpConfigHint}</span>
                 </div>
               </>
-            )}
-
-            {section === 'git' && (
-              <>
-                <div className={styles.group}>
-                  <label className={styles.label}>{t.authorName}</label>
-                  <input
-                    className={styles.input}
-                    value={settings.gitAuthorName}
-                    placeholder={t.authorNamePlaceholder}
-                    onChange={(e) => update('gitAuthorName', e.target.value)}
-                  />
-                </div>
-                <div className={styles.group}>
-                  <label className={styles.label}>{t.authorEmail}</label>
-                  <input
-                    className={styles.input}
-                    type="email"
-                    value={settings.gitAuthorEmail}
-                    placeholder={t.authorEmailPlaceholder}
-                    onChange={(e) => update('gitAuthorEmail', e.target.value)}
-                  />
-                </div>
-              </>
-            )}
-
-            {section === 'github' && (
-              <div className={styles.group}>
-                <label className={styles.label}>{t.githubPat}</label>
-                <input
-                  className={styles.input}
-                  type="password"
-                  value={settings.githubPat}
-                  placeholder={t.githubPatPlaceholder}
-                  onChange={(e) => update('githubPat', e.target.value)}
-                />
-                <span className={styles.hint}>{t.githubPatHint}</span>
-              </div>
             )}
           </div>
         </div>

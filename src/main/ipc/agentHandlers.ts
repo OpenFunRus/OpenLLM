@@ -14,8 +14,9 @@ import {
 import { registerShellOutputListener } from '../agent/shellOutputBridge'
 import {
   clearAgentSession,
+  clearAllAgentSessions,
   getAgentSessionMessages,
-  setAgentSessionMessages,
+  restoreAgentSession,
 } from '../agent/agentSessionStore'
 import type { AgentChatMessage } from '../../shared/agent/agentChatMessages'
 import { clearSessionTodos } from '../agent/todoSessionStore'
@@ -78,15 +79,14 @@ export function registerAgentHandlers(): void {
     clearSessionTodos(id)
   })
 
+  ipcMain.handle('agent:clearAllSessions', () => {
+    clearAllAgentSessions()
+  })
+
   ipcMain.handle(
     'agent:restoreSession',
     (_e, sessionId: string, messages: AgentChatMessage[] | null | undefined) => {
-      const id = sessionId ?? 'default'
-      if (!messages?.length) {
-        clearAgentSession(id)
-        return
-      }
-      setAgentSessionMessages(id, messages)
+      restoreAgentSession(sessionId ?? 'default', messages)
     }
   )
 

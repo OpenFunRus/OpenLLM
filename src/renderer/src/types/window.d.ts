@@ -1,7 +1,6 @@
 import type {
-  FileNode, WorkspaceInfo, ApiModelConfig, ApiModelInput, GenerateOptions,
-  FimRequest, GitFileStatus, GitRepoInfo, GitHubRepo, GitHubPR,
-  CreatePROptions, AppSettings, ChatMessage, ChatSessionsData, ImageAttachment
+  FileNode, WorkspaceInfo, RecentWorkspaceInfo, ApiModelConfig, ApiModelInput, GenerateOptions,
+  FimRequest, AppSettings, ChatMessage, ChatSessionsData, ImageAttachment
 } from '../../../shared/types'
 import type {
   AgentExecuteToolPayload, AgentMode, AgentRunPayload, AgentRunResult,
@@ -19,12 +18,16 @@ declare global {
 
       getFileTree: (dirPath: string) => Promise<FileNode[]>
       readFile: (filePath: string) => Promise<string>
+      readAttachment: (filePath: string) => Promise<ImageAttachment>
       writeFile: (filePath: string, content: string) => Promise<void>
       createFile: (filePath: string) => Promise<void>
       createDirectory: (dirPath: string) => Promise<void>
       deleteFile: (targetPath: string) => Promise<void>
       removeEmptyDir: (dirPath: string) => Promise<boolean>
       renameFile: (oldPath: string, newPath: string) => Promise<void>
+      copyFileEntry: (sourcePath: string, destPath: string) => Promise<void>
+      getPathForFile: (file: File) => string
+      openPathInOs: (targetPath: string) => Promise<string>
       watchDir: (dirPath: string) => Promise<void>
       unwatchDir: (dirPath: string) => Promise<void>
       onFsChanged: (cb: (payload: { eventType: string; filePath: string }) => void) => () => void
@@ -32,7 +35,7 @@ declare global {
       pickImageFiles: () => Promise<ImageAttachment[]>
       openFolderDialog: () => Promise<WorkspaceInfo | null>
       openFolder: (folderPath: string) => Promise<WorkspaceInfo>
-      getRecentWorkspaces: () => Promise<WorkspaceInfo[]>
+      getRecentWorkspaces: () => Promise<RecentWorkspaceInfo[]>
       closeWorkspace: () => Promise<void>
 
       loadModel: (modelId: string) => Promise<void>
@@ -54,32 +57,12 @@ declare global {
       updateModel: (id: string, input: ApiModelInput) => Promise<ApiModelConfig>
       removeModel: (id: string) => Promise<void>
 
-      gitInfo: (cwd: string) => Promise<GitRepoInfo>
-      gitStatus: (cwd: string) => Promise<GitFileStatus[]>
-      gitStage: (cwd: string, filePath: string) => Promise<void>
-      gitStageAll: (cwd: string) => Promise<void>
-      gitUnstage: (cwd: string, filePath: string) => Promise<void>
-      gitCommit: (cwd: string, message: string, name: string, email: string) => Promise<string>
-      gitPush: (cwd: string, pat?: string) => Promise<void>
-      gitPull: (cwd: string, pat?: string) => Promise<void>
-      gitBranches: (cwd: string) => Promise<string[]>
-      gitCheckout: (cwd: string, branch: string, create?: boolean) => Promise<void>
-      gitInit: (cwd: string) => Promise<void>
-      gitDiff: (cwd: string, filePath: string) => Promise<string>
-
-      githubAuth: (pat: string) => Promise<string>
-      githubLogout: () => void
-      githubStatus: () => Promise<{ isAuthenticated: boolean; username: string | null }>
-      githubRepos: () => Promise<GitHubRepo[]>
-      githubPRs: (owner: string, repo: string) => Promise<GitHubPR[]>
-      githubCreatePR: (opts: CreatePROptions) => Promise<GitHubPR>
-
       getSettings: () => Promise<AppSettings>
       setSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>
       saveChatHistory: (messages: ChatMessage[]) => Promise<void>
       loadChatHistory: () => Promise<ChatMessage[]>
-      saveChatSessions: (data: ChatSessionsData) => Promise<void>
-      loadChatSessions: () => Promise<ChatSessionsData>
+      saveChatSessions: (data: ChatSessionsData, workspacePath?: string | null) => Promise<void>
+      loadChatSessions: (workspacePath?: string | null) => Promise<ChatSessionsData>
 
       termCreate: (id: string, cwd: string) => Promise<{ cols: number; rows: number }>
       termWrite: (id: string, data: string) => void
@@ -95,6 +78,7 @@ declare global {
       }) => Promise<ToolResult[]>
       agentParseToolCalls: (text: string) => Promise<ParsedToolCall[]>
       agentClearSession: (sessionId: string) => Promise<void>
+      agentClearAllSessions: () => Promise<void>
       agentRestoreSession: (
         sessionId: string,
         messages: import('../../../../shared/agent/agentChatMessages').AgentChatMessage[] | null | undefined

@@ -1,0 +1,18 @@
+# Локальный SearXNG для WebSearch в OpenLLM.
+# Запуск: docker compose -f docker-compose.searxng.yml up -d
+# URL в Settings → Agent: http://127.0.0.1:8080
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: openllm-searxng
+    ports:
+      - "8080:8080"
+    volumes:
+      - searxng-data:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://127.0.0.1:8080/
+    restart: unless-stopped
+
+volumes:
+  searxng-data:

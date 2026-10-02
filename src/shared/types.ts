@@ -24,6 +24,15 @@ export interface WorkspaceInfo {
   path: string
 }
 
+export interface RecentWorkspace {
+  path: string
+  lastOpenedAt: string
+}
+
+export interface RecentWorkspaceInfo extends WorkspaceInfo {
+  lastOpenedAt: string
+}
+
 // ── Editor ────────────────────────────────────────────────────────────────────
 
 export interface EditorTab {
@@ -108,9 +117,13 @@ export interface FimRequest {
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export interface ChatMessageAttachment {
+  kind?: 'image' | 'file'
   name: string
   mimeType: string
-  dataUrl: string
+  /** Image/PDF preview data URL. */
+  dataUrl?: string
+  /** Absolute path for file-reference attachments. */
+  path?: string
 }
 
 export interface ChatMessage {
@@ -169,58 +182,12 @@ export interface ChatSessionsData {
   closedSessions: ChatSession[]
 }
 
-// ── Git ───────────────────────────────────────────────────────────────────────
-
-export type GitFileState = 'untracked' | 'modified' | 'added' | 'deleted' | 'renamed' | 'conflicted'
-
-export interface GitFileStatus {
-  path: string
-  state: GitFileState
-  isStaged: boolean
-}
-
-export interface GitRepoInfo {
-  workingDir: string
-  branch: string
-  isRepo: boolean
-}
-
-// ── GitHub ────────────────────────────────────────────────────────────────────
-
-export interface GitHubRepo {
-  fullName: string
-  cloneUrl: string
-  defaultBranch: string
-  isPrivate: boolean
-  description: string
-}
-
-export interface GitHubPR {
-  number: number
-  title: string
-  state: string
-  headBranch: string
-  baseBranch: string
-  url: string
-}
-
-export interface CreatePROptions {
-  repoFullName: string
-  title: string
-  body: string
-  head: string
-  base: string
-}
-
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 export interface AppSettings {
   theme: 'dark' | 'light'
-  recentWorkspaces: string[]
+  recentWorkspaces: RecentWorkspace[]
   lastWorkspacePath: string | null
-  githubPat: string
-  gitAuthorName: string
-  gitAuthorEmail: string
   apiModels: ApiModelConfig[]
   activeModelId: string | null
   editorFontSize: number

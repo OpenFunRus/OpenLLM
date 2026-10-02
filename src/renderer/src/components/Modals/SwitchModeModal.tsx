@@ -8,7 +8,7 @@ function modeLabel(mode: string): string {
   switch (mode) {
     case 'agent': return t.agentMode
     case 'plan': return t.planMode
-    case 'ask': return t.askMode
+    case 'chat': return t.chatMode
     default: return mode
   }
 }

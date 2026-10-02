@@ -25,7 +25,7 @@ export type P0ToolName = (typeof P0_TOOL_NAMES)[number]
 const SCHEMAS_BY_MODE: Record<AgentMode, readonly CursorToolFunctionSchema[]> = {
   agent: CURSOR_AGENT_TOOL_SCHEMAS,
   plan: CURSOR_PLAN_TOOL_SCHEMAS,
-  ask: CURSOR_ASK_TOOL_SCHEMAS
+  chat: CURSOR_ASK_TOOL_SCHEMAS
 }
 
 /** P0 file tools implemented in ToolExecutor (Stage 2–3). */

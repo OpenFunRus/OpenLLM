@@ -1,6 +1,7 @@
+import fs from 'fs'
 import path from 'path'
 import { settingsService } from './SettingsService'
-import type { WorkspaceInfo } from '../../shared/types'
+import type { RecentWorkspaceInfo, WorkspaceInfo } from '../../shared/types'
 
 class WorkspaceService {
   private _current: WorkspaceInfo | null = null
@@ -13,17 +14,25 @@ class WorkspaceService {
       path: folderPath
     }
     this._current = info
-    settingsService.set('lastWorkspacePath', folderPath)
     settingsService.addRecentWorkspace(folderPath)
     return info
   }
 
   close(): void { this._current = null }
 
-  getRecent(): WorkspaceInfo[] {
-    return settingsService
-      .get('recentWorkspaces')
-      .map((p) => ({ name: path.basename(p), path: p }))
+  getRecent(): RecentWorkspaceInfo[] {
+    const entries = settingsService.getRecentWorkspaces()
+    const valid = entries.filter((entry) => fs.existsSync(entry.path))
+
+    if (valid.length !== entries.length) {
+      settingsService.set('recentWorkspaces', valid)
+    }
+
+    return valid.map((entry) => ({
+      name: path.basename(entry.path),
+      path: entry.path,
+      lastOpenedAt: entry.lastOpenedAt,
+    }))
   }
 }
 

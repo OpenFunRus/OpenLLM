@@ -16,15 +16,6 @@ function kill(image) {
   }
 }
 
-function killByWindowTitle(title) {
-  try {
-    execSync(`taskkill /FI "WINDOWTITLE eq ${title}*" /F`, { stdio: 'ignore' })
-    return true
-  } catch {
-    return false
-  }
-}
-
 function isFileLocked(filePath) {
   if (!fs.existsSync(filePath)) return false
   try {
@@ -53,7 +44,6 @@ if (platform() === 'win32') {
 
   for (let attempt = 0; attempt < 5; attempt++) {
     kill('OpenLLM.exe')
-    killByWindowTitle('OpenLLM')
     sleep(400)
   }
 

@@ -80,6 +80,27 @@ class FileService {
     await fs.rename(oldPath, newPath)
   }
 
+  async copy(sourcePath: string, destPath: string): Promise<void> {
+    const stat = await fs.stat(sourcePath)
+    if (stat.isDirectory()) {
+      await this.copyDirectory(sourcePath, destPath)
+      return
+    }
+    await fs.mkdir(path.dirname(destPath), { recursive: true })
+    await fs.copyFile(sourcePath, destPath)
+  }
+
+  private async copyDirectory(sourcePath: string, destPath: string): Promise<void> {
+    await fs.mkdir(destPath, { recursive: true })
+    const entries = await fs.readdir(sourcePath, { withFileTypes: true })
+    for (const entry of entries) {
+      const from = path.join(sourcePath, entry.name)
+      const to = path.join(destPath, entry.name)
+      if (entry.isDirectory()) await this.copyDirectory(from, to)
+      else await fs.copyFile(from, to)
+    }
+  }
+
   watchDirectory(
     dirPath: string,
     onChange: (eventType: string, filePath: string) => void

@@ -1,6 +1,7 @@
 import type { ChatMessage as ChatMessageType } from '@shared/types'
 import { t } from '@shared/i18n'
 import { IconUndo } from '../icons/Icons'
+import { renderTextWithMentions } from './mentionHighlight'
 import styles from './UserPromptBubble.module.css'
 
 interface Props {
@@ -16,7 +17,11 @@ export function UserPromptBubble({
   canEdit = false,
   onEditOpen,
 }: Props): JSX.Element {
-  const hasAttachments = (message.attachments?.length ?? 0) > 0
+  const attachments = message.attachments ?? []
+  const imageAttachments = attachments.filter(
+    (a) => a.kind === 'image' || (!a.kind && Boolean(a.dataUrl))
+  )
+  const legacyCount = attachments.length > 0 && imageAttachments.length === 0
 
   return (
     <div className={styles.bubble}>
@@ -31,13 +36,26 @@ export function UserPromptBubble({
           <IconUndo size={14} />
         </button>
       )}
-      {hasAttachments && (
+      {imageAttachments.length > 0 && (
+        <div className={styles.attachments}>
+          {imageAttachments.map((img) => (
+            img.dataUrl?.startsWith('data:image/') ? (
+              <div key={img.name} className={styles.imageThumb}>
+                <img src={img.dataUrl} alt={img.name} className={styles.imageThumbImg} />
+              </div>
+            ) : (
+              <span key={img.name} className={styles.pdfBadge}>PDF</span>
+            )
+          ))}
+        </div>
+      )}
+      {legacyCount && (
         <div className={styles.attachHint}>
-          {t.attachedImagesCount(message.attachments!.length)}
+          {t.attachedImagesCount(attachments.length)}
         </div>
       )}
       {message.content.trim() && (
-        <p className={styles.text}>{message.content}</p>
+        <p className={styles.text}>{renderTextWithMentions(message.content)}</p>
       )}
     </div>
   )

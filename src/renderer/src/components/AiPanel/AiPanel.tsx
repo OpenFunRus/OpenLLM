@@ -14,8 +14,11 @@ import { useChatAutoScroll } from './useChatAutoScroll'
 import { usePromptHeader } from './usePromptHeader'
 import { t } from '../../../../shared/i18n'
 import type { ApiModelConfig, ImageAttachment } from '../../../../shared/types'
+import { isMediaAttachmentPath, OPENLLM_FILE_DRAG_MIME } from '../../../../shared/attachmentUtils'
 import styles from './AiPanel.module.css'
 import { ImageLightbox } from './ImageLightbox'
+import { ComposerMentionInput } from './ComposerMentionInput'
+import { formatFileMention, insertTextAtSelection } from './mentionHighlight'
 import { ContextUsageRing } from './ContextUsageRing'
 import { relativeDisplayPath } from '../../utils/lineDiff'
 import { AgentTodoPanel } from './AgentTodoPanel'
@@ -40,7 +43,6 @@ import {
   IconHistoryTitle,
   IconLoader,
   IconModeAgent,
-  IconModeAsk,
   IconModeChat,
   IconModePlan,
   IconSend,
@@ -52,8 +54,10 @@ interface AttachedImage extends ImageAttachment {
   previewUrl: string
 }
 
-const INPUT_MIN_HEIGHT = 22
-const INPUT_MAX_HEIGHT = 160
+function pathsEqual(a: string, b: string): boolean {
+  return a.replace(/\//g, '\\').toLowerCase() === b.replace(/\//g, '\\').toLowerCase()
+}
+
 async function clipboardFileToAttachment(file: File): Promise<AttachedImage> {
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -76,12 +80,11 @@ async function clipboardFileToAttachment(file: File): Promise<AttachedImage> {
   }
 }
 
-const COMPOSER_MODES: ComposerMode[] = ['agent', 'plan', 'ask', 'chat']
+const COMPOSER_MODES: ComposerMode[] = ['agent', 'plan', 'chat']
 
 function composerModeLabel(mode: ComposerMode): string {
   switch (mode) {
     case 'chat': return t.chatMode
-    case 'ask': return t.askMode
     case 'plan': return t.planMode
     default: return t.agentMode
   }
@@ -90,7 +93,6 @@ function composerModeLabel(mode: ComposerMode): string {
 function ComposerModeIcon({ mode, size = 12 }: { mode: ComposerMode; size?: number }): JSX.Element {
   switch (mode) {
     case 'chat': return <IconModeChat size={size} />
-    case 'ask': return <IconModeAsk size={size} />
     case 'plan': return <IconModePlan size={size} />
     default: return <IconModeAgent size={size} />
   }
@@ -99,7 +101,6 @@ function ComposerModeIcon({ mode, size = 12 }: { mode: ComposerMode; size?: numb
 function composerModePillClass(mode: ComposerMode): string {
   switch (mode) {
     case 'plan': return styles.modePillPlan
-    case 'ask': return styles.modePillAsk
     case 'chat': return styles.modePillChat
     default: return styles.modePillAgent
   }
@@ -121,16 +122,14 @@ export function AiPanel(): JSX.Element {
     closedSessions,
     activeSessionId,
     isStreaming,
+    streamingSessionId,
     isModelLoaded,
     modelName,
-    sendMessage,
     sendAgentMessage,
     continueAgentRun,
     rollbackToUserMessage,
     editUserMessageAndResend,
-    editChatUserMessage,
     stop,
-    loadSessions,
     createSession,
     closeSession,
     restoreSession,
@@ -146,6 +145,7 @@ export function AiPanel(): JSX.Element {
   const { current: workspace, refreshTree } = useWorkspaceStore()
   const [input, setInput] = useState('')
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([])
+  const [composerDragOver, setComposerDragOver] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false)
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false)
@@ -179,6 +179,7 @@ export function AiPanel(): JSX.Element {
   const messages = getActiveMessages()
   const turns = useMemo(() => splitChatTurns(messages), [messages])
   const activeTurnIndex = Math.max(0, turns.length - 1)
+  const isActiveSessionStreaming = isStreaming && streamingSessionId === activeSessionId
   const canSend = isModelLoaded && !isStreaming && (input.trim().length > 0 || attachedImages.length > 0)
 
   const registerPromptAnchor = useCallback(
@@ -248,7 +249,6 @@ export function AiPanel(): JSX.Element {
     setActiveModelId(settings.activeModelId)
   }, [])
 
-  useEffect(() => { void loadSessions() }, [loadSessions])
   useEffect(() => { void loadModels() }, [loadModels])
   useEffect(() => {
     if (!modelManagerOpen) void loadModels()
@@ -260,17 +260,6 @@ export function AiPanel(): JSX.Element {
     }
     prevStreaming.current = isStreaming
   }, [isStreaming, refreshTree])
-
-  const adjustInputHeight = useCallback(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = `${INPUT_MIN_HEIGHT}px`
-    el.style.height = `${Math.min(el.scrollHeight, INPUT_MAX_HEIGHT)}px`
-  }, [])
-
-  useEffect(() => {
-    adjustInputHeight()
-  }, [input, adjustInputHeight])
 
   useEffect(() => {
     if (!historyOpen) return
@@ -377,6 +366,96 @@ export function AiPanel(): JSX.Element {
     setAttachedImages((prev) => prev.filter((f) => f.path !== path))
   }
 
+  const insertFileMention = useCallback((filePath: string) => {
+    const relative = relativeDisplayPath(filePath, workspace?.path ?? null)
+    const mention = formatFileMention(relative)
+    const token = `${mention} `
+    const textarea = textareaRef.current
+    const selectionStart = textarea?.selectionStart ?? 0
+    const selectionEnd = textarea?.selectionEnd ?? 0
+
+    let nextCursor = 0
+    setInput((prev) => {
+      if (textarea) {
+        const inserted = insertTextAtSelection(prev, token, selectionStart, selectionEnd)
+        nextCursor = inserted.cursor
+        return inserted.next
+      }
+      const prefix = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
+      const next = `${prev}${prefix}${token}`
+      nextCursor = next.length
+      return next
+    })
+
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(nextCursor, nextCursor)
+    })
+  }, [workspace?.path])
+
+  const attachWorkspacePath = useCallback(async (filePath: string) => {
+    if (!filePath.trim()) return
+
+    if (isMediaAttachmentPath(filePath)) {
+      try {
+        const file = await window.api.readAttachment(filePath)
+        setAttachedImages((prev) => {
+          if (prev.some((f) => pathsEqual(f.path, file.path))) return prev
+          return [
+            ...prev,
+            {
+              ...file,
+              previewUrl: file.mimeType.startsWith('image/')
+                ? `data:${file.mimeType};base64,${file.base64}`
+                : '',
+            },
+          ]
+        })
+      } catch {
+        /* ignore unreadable media */
+      }
+      return
+    }
+
+    insertFileMention(filePath)
+  }, [insertFileMention])
+
+  const handleComposerDragOver = useCallback((e: React.DragEvent) => {
+    if (!isModelLoaded || isStreaming) return
+    if (
+      e.dataTransfer.types.includes(OPENLLM_FILE_DRAG_MIME)
+      || e.dataTransfer.types.includes('Files')
+    ) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      setComposerDragOver(true)
+    }
+  }, [isModelLoaded, isStreaming])
+
+  const handleComposerDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setComposerDragOver(false)
+  }, [])
+
+  const handleComposerDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    setComposerDragOver(false)
+    if (!isModelLoaded || isStreaming) return
+
+    const explorerPath = e.dataTransfer.getData(OPENLLM_FILE_DRAG_MIME)
+    if (explorerPath) {
+      await attachWorkspacePath(explorerPath)
+      return
+    }
+
+    for (const file of Array.from(e.dataTransfer.files)) {
+      const filePath = window.api.getPathForFile(file)
+      if (filePath) await attachWorkspacePath(filePath)
+    }
+  }, [attachWorkspacePath, isModelLoaded, isStreaming])
+
   const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!isModelLoaded || isStreaming) return
     const items = e.clipboardData?.items
@@ -420,24 +499,19 @@ export function AiPanel(): JSX.Element {
   }), [workspace, tabs, activeTabId, cursorLine])
 
   const buildRollbackImpact = useCallback((messageIndex: number, scope: 'rollback' | 'edit_resend') => {
-    const agentModes = composerMode !== 'chat'
     return analyzeRollbackImpact(messages, messageIndex, scope, {
       workspacePath: workspace?.path ?? null,
-      hasActivePlan: agentModes && Boolean(activePlan),
-      todoCount: agentModes ? agentTodos.length : 0,
+      hasActivePlan: Boolean(activePlan),
+      todoCount: agentTodos.length,
       planName: activePlan?.name,
     })
-  }, [activePlan, agentTodos.length, composerMode, messages, workspace?.path])
+  }, [activePlan, agentTodos.length, messages, workspace?.path])
 
   const executeRollback = useCallback((messageIndex: number) => {
     void rollbackToUserMessage(messageIndex, workspace?.path ?? null)
   }, [rollbackToUserMessage, workspace?.path])
 
   const executeEditResend = useCallback((messageIndex: number, text: string) => {
-    if (composerMode === 'chat') {
-      void editChatUserMessage(messageIndex, text, workspace?.path)
-      return
-    }
     void editUserMessageAndResend(messageIndex, text, workspace?.path, buildUserContext(), {
       mode: composerMode,
       sessionId: activeSessionId ?? undefined,
@@ -446,7 +520,6 @@ export function AiPanel(): JSX.Element {
     activeSessionId,
     buildUserContext,
     composerMode,
-    editChatUserMessage,
     editUserMessageAndResend,
     workspace?.path,
   ])
@@ -531,6 +604,7 @@ export function AiPanel(): JSX.Element {
       path, name, mimeType, base64,
     }))
     const displayAttachments = attachedImages.map(({ name, mimeType, previewUrl, base64 }) => ({
+      kind: 'image' as const,
       name,
       mimeType,
       dataUrl: previewUrl || `data:${mimeType};base64,${base64}`,
@@ -544,24 +618,20 @@ export function AiPanel(): JSX.Element {
       displayAttachments: displayAttachments.length > 0 ? displayAttachments : undefined,
     }
 
-    if (composerMode !== 'chat') {
-      const userContext: AgentUserContext = {
-        workspacePath: workspace?.path ?? null,
-        openFiles: tabs.map((tab) => ({
-          path: tab.path,
-          isActive: tab.id === activeTabId,
-          cursorLine: tab.id === activeTabId ? cursorLine : undefined
-        })),
-        timezoneOffsetMinutes: -new Date().getTimezoneOffset()
-      }
-      await sendAgentMessage(prompt, workspace?.path, userContext, {
-        ...sendOpts,
-        sessionId: activeSessionId ?? undefined,
-        mode: composerMode,
-      })
-    } else {
-      await sendMessage(prompt, workspace?.path, sendOpts)
+    const userContext: AgentUserContext = {
+      workspacePath: workspace?.path ?? null,
+      openFiles: tabs.map((tab) => ({
+        path: tab.path,
+        isActive: tab.id === activeTabId,
+        cursorLine: tab.id === activeTabId ? cursorLine : undefined
+      })),
+      timezoneOffsetMinutes: -new Date().getTimezoneOffset()
     }
+    await sendAgentMessage(prompt, workspace?.path, userContext, {
+      ...sendOpts,
+      sessionId: activeSessionId ?? undefined,
+      mode: composerMode,
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -588,7 +658,7 @@ export function AiPanel(): JSX.Element {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className={`${styles.chatTab} ${session.id === activeSessionId ? styles.chatTabActive : ''}`}
+              className={`${styles.chatTab} ${session.id === activeSessionId ? styles.chatTabActive : ''} ${session.id === streamingSessionId ? styles.chatTabStreaming : ''}`}
               onClick={() => setActiveSession(session.id)}
               title={session.title}
             >
@@ -661,7 +731,7 @@ export function AiPanel(): JSX.Element {
           message={headerTurn?.userMessage ?? null}
           messageIndex={headerTurn?.userIndex ?? 0}
           visible={showHeaderCopy}
-          canEdit={!isStreaming}
+          canEdit={!isActiveSessionStreaming}
           onEditOpen={handleEditOpen}
         />
         <div
@@ -685,7 +755,7 @@ export function AiPanel(): JSX.Element {
             <ActiveTurnShell
               key={turns[activeTurnIndex].userMessage.id}
               turn={turns[activeTurnIndex]}
-              isStreaming={isStreaming}
+              isStreaming={isActiveSessionStreaming}
               onPromptAnchor={registerPromptAnchor(activeTurnIndex)}
               onEditOpen={handleEditOpen}
               onImplementPlan={(path, name) => void handleImplementPlan(path, name)}
@@ -707,7 +777,12 @@ export function AiPanel(): JSX.Element {
           )}
         </div>
 
-        <div className={styles.composer}>
+        <div
+          className={`${styles.composer} ${composerDragOver ? styles.composerDragOver : ''}`}
+          onDragOver={handleComposerDragOver}
+          onDragLeave={handleComposerDragLeave}
+          onDrop={(e) => void handleComposerDrop(e)}
+        >
           {attachedImages.length > 0 && (
             <div className={styles.imagePreviews}>
               {attachedImages.map((img) => (
@@ -740,16 +815,14 @@ export function AiPanel(): JSX.Element {
             </div>
           )}
 
-          <textarea
-            ref={textareaRef}
-            className={styles.composerInput}
-            placeholder={isModelLoaded ? t.askPlaceholder : t.loadModelFirst}
+          <ComposerMentionInput
+            inputRef={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={setInput}
             onKeyDown={handleKeyDown}
             onPaste={(e) => void handlePaste(e)}
             disabled={!isModelLoaded || isStreaming}
-            rows={1}
+            placeholder={isModelLoaded ? t.askPlaceholder : t.loadModelFirst}
           />
 
           <div className={styles.composerFooter}>

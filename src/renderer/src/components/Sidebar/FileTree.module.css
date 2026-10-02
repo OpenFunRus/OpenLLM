@@ -32,13 +32,6 @@
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.tree:hover .toolbar,
-.header:focus-within .toolbar {
-  opacity: 1;
 }
 
 .toolBtn {
@@ -59,9 +52,17 @@
 
 .content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
+  min-height: 0;
+}
+
+.fillArea {
+  flex: 1;
+  min-height: 48px;
 }
 
 .row {
@@ -81,6 +82,20 @@
 
 .row.selected {
   background: var(--bg-selected);
+}
+
+.row.dropTarget {
+  background: color-mix(in srgb, var(--accent-blue) 18%, var(--bg-selected));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-blue) 55%, transparent);
+}
+
+.row.dragging {
+  opacity: 0.45;
+}
+
+.fillArea.dropTarget {
+  background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-blue) 40%, transparent);
 }
 
 .twistie {
@@ -114,6 +129,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 22px;
+}
+
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin-right: 4px;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
 }
 
 .empty {

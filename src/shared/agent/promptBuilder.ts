@@ -8,7 +8,7 @@ import { PLAN_NATIVE_SECTIONS } from './prompts/planSystemBody'
 
 function nativeSectionsForMode(mode: AgentMode): readonly string[] {
   switch (mode) {
-    case 'ask':
+    case 'chat':
       return ASK_NATIVE_SECTIONS
     case 'plan':
       return PLAN_NATIVE_SECTIONS

@@ -22,7 +22,7 @@ export type CursorToolFunctionSchema = {
   }
 }
 
-export type AgentMode = 'agent' | 'plan' | 'ask'
+export type AgentMode = 'agent' | 'plan' | 'chat'
 
 /** Parsed tool call (native OpenAI or legacy XML). */
 export type ParsedToolCall = {
@@ -140,7 +140,14 @@ export type PendingSwitchMode = SwitchModePayload & {
   requestId: string
 }
 
-export type ComposerMode = 'chat' | AgentMode
+export type ComposerMode = AgentMode
+
+/** Migrate persisted session modes (legacy ask + old plain-chat composer). */
+export function normalizeComposerMode(mode?: string | null): ComposerMode {
+  if (mode === 'ask' || mode === 'chat') return 'chat'
+  if (mode === 'plan') return 'plan'
+  return 'agent'
+}
 
 export type AgentRunContinue = {
   /** Steps already completed in prior batches for this assistant turn. */

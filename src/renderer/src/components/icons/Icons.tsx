@@ -12,7 +12,6 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
-  GitBranch,
   History,
   Infinity,
   Loader2,
@@ -143,12 +142,12 @@ export function IconFolderOpen(props: IconProps): JSX.Element {
   return renderIcon(FolderOpen, { size: 22, ...props })
 }
 
-export function IconFiles(props: IconProps): JSX.Element {
-  return renderIcon(File, { size: 22, ...props })
+export function IconOpenInExplorer(props: IconProps): JSX.Element {
+  return renderIcon(FolderOpen, { size: 16, ...props })
 }
 
-export function IconGit(props: IconProps): JSX.Element {
-  return renderIcon(GitBranch, { size: 22, ...props })
+export function IconFiles(props: IconProps): JSX.Element {
+  return renderIcon(File, { size: 22, ...props })
 }
 
 export function IconModel(props: IconProps): JSX.Element {

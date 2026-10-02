@@ -13,6 +13,8 @@ interface EditorState {
   openTabAtLine: (path: string, name: string, line?: number) => Promise<void>
   clearRevealLine: () => void
   closeTab: (id: string) => void
+  closeTabByPath: (filePath: string) => void
+  renameTabPath: (oldPath: string, newPath: string, newName: string) => void
   setActiveTab: (id: string) => void
   setTabContent: (id: string, content: string) => void
   markDirty: (id: string, dirty: boolean) => void
@@ -25,6 +27,14 @@ interface EditorState {
 
 let _nextId = 1
 const _autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function normalizeTabPath(path: string): string {
+  return path.replace(/\//g, '\\')
+}
+
+function pathsEqual(a: string, b: string): boolean {
+  return normalizeTabPath(a).toLowerCase() === normalizeTabPath(b).toLowerCase()
+}
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
@@ -40,8 +50,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   openTabAtLine: async (path: string, name: string, line?: number) => {
+    const normalizedPath = normalizeTabPath(path)
     const { tabs } = get()
-    const existing = tabs.find((t) => t.path === path)
+    const existing = tabs.find((t) => pathsEqual(t.path, normalizedPath))
     if (existing) {
       set({
         activeTabId: existing.id,
@@ -51,16 +62,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return
     }
 
-    const content = await window.api.readFile(path)
-    const id = String(_nextId++)
-    const ext = name.split('.').pop() ?? ''
-    const lang = extToLanguage(ext)
-    set((s) => ({
-      tabs: [...s.tabs, { id, path, name, content, language: lang, isDirty: false }],
-      activeTabId: id,
-      revealLine: line ?? null,
-      revealTabId: line ? id : null,
-    }))
+    try {
+      const content = await window.api.readFile(normalizedPath)
+      const id = String(_nextId++)
+      const ext = name.split('.').pop() ?? ''
+      const lang = extToLanguage(ext)
+      set((s) => ({
+        tabs: [...s.tabs, { id, path: normalizedPath, name, content, language: lang, isDirty: false }],
+        activeTabId: id,
+        revealLine: line ?? null,
+        revealTabId: line ? id : null,
+      }))
+    } catch {
+      /* file missing or unreadable */
+    }
   },
 
   clearRevealLine: () => set({ revealLine: null, revealTabId: null }),
@@ -77,6 +92,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       delete markdownPreview[id]
       return { tabs: next, activeTabId, markdownPreview }
     })
+  },
+
+  closeTabByPath: (filePath: string) => {
+    const tab = get().tabs.find((t) => t.path === filePath)
+    if (tab) get().closeTab(tab.id)
+  },
+
+  renameTabPath: (oldPath: string, newPath: string, newName: string) => {
+    set((s) => ({
+      tabs: s.tabs.map((tab) =>
+        tab.path === oldPath
+          ? {
+              ...tab,
+              path: newPath,
+              name: newName,
+              language: extToLanguage(newName.split('.').pop() ?? ''),
+            }
+          : tab
+      ),
+    }))
   },
 
   setActiveTab: (id: string) => set({ activeTabId: id }),

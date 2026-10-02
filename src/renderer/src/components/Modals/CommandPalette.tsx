@@ -26,7 +26,7 @@ export function CommandPalette(): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null)
   const {
     setCommandPaletteOpen, toggleSidebar, toggleAiPanel,
-    toggleTerminal, setModelManagerOpen, setGithubModalOpen
+    toggleTerminal, setModelManagerOpen
   } = useUiStore()
   const { openFolder, fileTree } = useWorkspaceStore()
   const { openTab } = useEditorStore()
@@ -40,10 +40,9 @@ export function CommandPalette(): JSX.Element {
   const commands: Command[] = [
     { id: 'open-folder', label: t.cmdOpenFolder, description: t.cmdOpenFolderDesc, action: () => { openFolder(); close() } },
     { id: 'toggle-sidebar', label: t.cmdToggleSidebar, action: () => { toggleSidebar(); close() } },
-    { id: 'toggle-ai', label: t.cmdToggleAi, description: 'Ctrl+L', action: () => { toggleAiPanel(); close() } },
-    { id: 'toggle-terminal', label: t.cmdToggleTerminal, description: 'Ctrl+`', action: () => { toggleTerminal(); close() } },
+    { id: 'toggle-ai', label: t.cmdToggleAi, action: () => { toggleAiPanel(); close() } },
+    { id: 'toggle-terminal', label: t.cmdToggleTerminal, action: () => { toggleTerminal(); close() } },
     { id: 'models', label: t.cmdModels, description: t.cmdModelsDesc, action: () => { setModelManagerOpen(true); close() } },
-    { id: 'github', label: t.cmdGithub, description: t.cmdGithubDesc, action: () => { setGithubModalOpen(true); close() } },
   ]
 
   const allFiles = flattenTree(fileTree)

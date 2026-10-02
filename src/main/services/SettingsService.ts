@@ -1,17 +1,16 @@
 import fs from 'fs'
 import path from 'path'
 import type { App } from 'electron'
-import type { AppSettings } from '../../shared/types'
+import type { AppSettings, RecentWorkspace } from '../../shared/types'
 import { AGENT_SETTINGS_DEFAULTS } from '../../shared/agent/agentSettings'
+
+const RECENT_WORKSPACE_LIMIT = 15
 
 const defaults: AppSettings = {
   theme: 'dark',
   recentWorkspaces: [],
   lastWorkspacePath: null,
-  githubPat: '',
   tavilyApiKey: '',
-  gitAuthorName: '',
-  gitAuthorEmail: '',
   apiModels: [],
   activeModelId: null,
   editorFontSize: 15,
@@ -32,6 +31,37 @@ type PersistedWindowState = {
   windowMaximized?: boolean
 }
 
+function normalizeRecentWorkspaces(raw: unknown, fallbackDate: string): RecentWorkspace[] {
+  if (!Array.isArray(raw)) return []
+
+  const items: RecentWorkspace[] = []
+  for (const item of raw) {
+    if (typeof item === 'string' && item.trim()) {
+      items.push({ path: item, lastOpenedAt: fallbackDate })
+      continue
+    }
+    if (item && typeof item === 'object' && typeof (item as RecentWorkspace).path === 'string') {
+      const entry = item as RecentWorkspace
+      items.push({
+        path: entry.path,
+        lastOpenedAt: entry.lastOpenedAt || fallbackDate,
+      })
+    }
+  }
+
+  const byPath = new Map<string, RecentWorkspace>()
+  for (const entry of items) {
+    const existing = byPath.get(entry.path)
+    if (!existing || entry.lastOpenedAt > existing.lastOpenedAt) {
+      byPath.set(entry.path, entry)
+    }
+  }
+
+  return [...byPath.values()]
+    .sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt))
+    .slice(0, RECENT_WORKSPACE_LIMIT)
+}
+
 class SettingsService {
   private data: AppSettings & PersistedWindowState = { ...defaults }
   private loaded = false
@@ -42,11 +72,24 @@ class SettingsService {
     try {
       const raw = fs.readFileSync(getSettingsPath(), 'utf-8')
       const parsed = JSON.parse(raw) as Partial<AppSettings>
+      const fallbackDate = new Date().toISOString()
       let merged: AppSettings & PersistedWindowState = {
         ...defaults,
         ...parsed,
         apiModels: parsed.apiModels ?? [],
+        recentWorkspaces: normalizeRecentWorkspaces(parsed.recentWorkspaces, fallbackDate),
       }
+
+      if (merged.lastWorkspacePath) {
+        const exists = merged.recentWorkspaces.some((item) => item.path === merged.lastWorkspacePath)
+        if (!exists) {
+          merged.recentWorkspaces = normalizeRecentWorkspaces(
+            [{ path: merged.lastWorkspacePath, lastOpenedAt: fallbackDate }, ...merged.recentWorkspaces],
+            fallbackDate
+          )
+        }
+      }
+
       if ((merged.agentLimitsVersion ?? 0) < 2) {
         merged = {
           ...merged,
@@ -95,10 +138,19 @@ class SettingsService {
 
   addRecentWorkspace(wsPath: string): void {
     this.load()
-    const recent = (this.data.recentWorkspaces ?? []).filter((p) => p !== wsPath)
-    recent.unshift(wsPath)
-    this.data.recentWorkspaces = recent.slice(0, 10)
+    const now = new Date().toISOString()
+    const recent = this.getRecentWorkspaces().filter((item) => item.path !== wsPath)
+    recent.unshift({ path: wsPath, lastOpenedAt: now })
+    this.data.recentWorkspaces = recent.slice(0, RECENT_WORKSPACE_LIMIT)
+    this.data.lastWorkspacePath = wsPath
     this.save()
+  }
+
+  getRecentWorkspaces(): RecentWorkspace[] {
+    this.load()
+    return [...(this.data.recentWorkspaces ?? [])].sort((a, b) =>
+      b.lastOpenedAt.localeCompare(a.lastOpenedAt)
+    )
   }
 
   getAll(): AppSettings {

@@ -8,8 +8,8 @@ import { TerminalPanel } from './components/Terminal/TerminalPanel'
 import { StatusBar } from './components/StatusBar/StatusBar'
 import { CommandPalette } from './components/Modals/CommandPalette'
 import { ModelManagerModal } from './components/Modals/ModelManagerModal'
-import { GitHubModal } from './components/Modals/GitHubModal'
 import { SettingsModal } from './components/Modals/SettingsModal'
+import { ProjectHomeScreen } from './components/ProjectHome/ProjectHomeScreen'
 import { AskQuestionModal } from './components/Modals/AskQuestionModal'
 import { SwitchModeModal } from './components/Modals/SwitchModeModal'
 import { ResizeHandle } from './components/Layout/ResizeHandle'
@@ -31,9 +31,11 @@ export function App(): JSX.Element {
     setEditorFontSize, setEditorTabSize
   } = useUiStore()
 
-  const { current: workspace, refreshTree, openFolder } = useWorkspaceStore()
+  const projectManagerOpen = useUiStore((s) => s.projectManagerOpen)
+  const { current: workspace, refreshTree } = useWorkspaceStore()
+  const showProjectHome = !workspace || projectManagerOpen
   const { saveActiveTab } = useEditorStore()
-  const { setModelStatus, activeSessionId } = useAiStore()
+  const { setModelStatus, activeSessionId, switchWorkspaceChats } = useAiStore()
 
   // Sync LLM status and settings on mount
   useEffect(() => {
@@ -45,12 +47,9 @@ export function App(): JSX.Element {
       setEditorTabSize(s.editorTabSize)
       loadLayoutFromSettings(s)
 
-      const lastPath = s.lastWorkspacePath ?? s.recentWorkspaces?.[0] ?? null
-      if (lastPath) {
-        await openFolder(lastPath)
-      }
+      await switchWorkspaceChats(null)
     })
-  }, [setModelStatus, setEditorFontSize, setEditorTabSize, loadLayoutFromSettings, openFolder])
+  }, [setModelStatus, setEditorFontSize, setEditorTabSize, loadLayoutFromSettings, switchWorkspaceChats])
 
   useEffect(() => {
     const onResize = () => clampAiPanelToWindow()
@@ -97,46 +96,51 @@ export function App(): JSX.Element {
   return (
     <div className={styles.shell}>
       <TitleBar />
-      <div className={styles.body}>
-        <ActivityBar />
-        {sidebarVisible && (
-          <>
-            <div className={styles.sidebarWrap} style={{ width: sidebarWidth }}>
-              <Sidebar />
+      {showProjectHome ? (
+        <ProjectHomeScreen />
+      ) : (
+        <>
+          <div className={styles.body}>
+            <ActivityBar />
+            {sidebarVisible && (
+              <>
+                <div className={styles.sidebarWrap} style={{ width: sidebarWidth }}>
+                  <Sidebar />
+                </div>
+                <ResizeHandle orientation="vertical" onResize={adjustSidebarWidth} />
+              </>
+            )}
+            <div className={styles.main}>
+              <div className={styles.editors}>
+                <EditorArea />
+              </div>
+              <div
+                className={styles.terminal}
+                style={{
+                  height: terminalVisible ? terminalHeight : 0,
+                  display: terminalVisible ? undefined : 'none',
+                }}
+              >
+                <TerminalPanel
+                  cwd={workspace?.path ?? ''}
+                  sessionId={activeSessionId}
+                />
+              </div>
             </div>
-            <ResizeHandle orientation="vertical" onResize={adjustSidebarWidth} />
-          </>
-        )}
-        <div className={styles.main}>
-          <div className={styles.editors}>
-            <EditorArea />
+            {aiPanelVisible && (
+              <>
+                <ResizeHandle orientation="vertical" onResize={(d) => adjustAiPanelWidth(-d)} />
+                <div className={styles.aiPanelWrap} style={{ width: aiPanelWidth }}>
+                  <AiPanel />
+                </div>
+              </>
+            )}
           </div>
-          <div
-            className={styles.terminal}
-            style={{
-              height: terminalVisible ? terminalHeight : 0,
-              display: terminalVisible ? undefined : 'none',
-            }}
-          >
-            <TerminalPanel
-              cwd={workspace?.path ?? ''}
-              sessionId={activeSessionId}
-            />
-          </div>
-        </div>
-        {aiPanelVisible && (
-          <>
-            <ResizeHandle orientation="vertical" onResize={(d) => adjustAiPanelWidth(-d)} />
-            <div className={styles.aiPanelWrap} style={{ width: aiPanelWidth }}>
-              <AiPanel />
-            </div>
-          </>
-        )}
-      </div>
-      <StatusBar />
+          <StatusBar />
+        </>
+      )}
       {commandPaletteOpen && <CommandPalette />}
       <ModelManagerModal />
-      <GitHubModal />
       <SettingsModal />
       <AskQuestionModal />
       <SwitchModeModal />

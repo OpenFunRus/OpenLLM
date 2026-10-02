@@ -1,8 +1,7 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
-  FileNode, WorkspaceInfo, GenerateOptions,
-  FimRequest, GitFileStatus, GitRepoInfo, GitHubRepo, GitHubPR,
-  CreatePROptions, AppSettings, ChatMessage, ChatSessionsData, ImageAttachment,
+  FileNode, WorkspaceInfo, RecentWorkspaceInfo, GenerateOptions,
+  FimRequest, AppSettings, ChatMessage, ChatSessionsData, ImageAttachment,
   ApiModelConfig, ApiModelInput
 } from '../shared/types'
 import type {
@@ -36,6 +35,8 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('fs:tree', dirPath),
   readFile: (filePath: string): Promise<string> =>
     ipcRenderer.invoke('fs:read', filePath),
+  readAttachment: (filePath: string): Promise<ImageAttachment> =>
+    ipcRenderer.invoke('fs:readAttachment', filePath),
   writeFile: (filePath: string, content: string): Promise<void> =>
     ipcRenderer.invoke('fs:write', filePath, content),
   createFile: (filePath: string): Promise<void> =>
@@ -48,6 +49,11 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('fs:removeIfEmpty', dirPath),
   renameFile: (oldPath: string, newPath: string): Promise<void> =>
     ipcRenderer.invoke('fs:rename', oldPath, newPath),
+  copyFileEntry: (sourcePath: string, destPath: string): Promise<void> =>
+    ipcRenderer.invoke('fs:copy', sourcePath, destPath),
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+  openPathInOs: (targetPath: string): Promise<string> =>
+    ipcRenderer.invoke('shell:openPath', targetPath),
   watchDir: (dirPath: string): Promise<void> =>
     ipcRenderer.invoke('fs:watch', dirPath),
   unwatchDir: (dirPath: string): Promise<void> =>
@@ -65,7 +71,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('workspace:openDialog'),
   openFolder: (folderPath: string): Promise<WorkspaceInfo> =>
     ipcRenderer.invoke('workspace:open', folderPath),
-  getRecentWorkspaces: (): Promise<WorkspaceInfo[]> =>
+  getRecentWorkspaces: (): Promise<RecentWorkspaceInfo[]> =>
     ipcRenderer.invoke('workspace:recent'),
   closeWorkspace: (): Promise<void> =>
     ipcRenderer.invoke('workspace:close'),
@@ -115,46 +121,6 @@ contextBridge.exposeInMainWorld('api', {
   removeModel: (id: string): Promise<void> =>
     ipcRenderer.invoke('model:remove', id),
 
-  // ── Git ──────────────────────────────────────────────────────────────
-  gitInfo: (cwd: string): Promise<GitRepoInfo> =>
-    ipcRenderer.invoke('git:info', cwd),
-  gitStatus: (cwd: string): Promise<GitFileStatus[]> =>
-    ipcRenderer.invoke('git:status', cwd),
-  gitStage: (cwd: string, filePath: string): Promise<void> =>
-    ipcRenderer.invoke('git:stage', cwd, filePath),
-  gitStageAll: (cwd: string): Promise<void> =>
-    ipcRenderer.invoke('git:stageAll', cwd),
-  gitUnstage: (cwd: string, filePath: string): Promise<void> =>
-    ipcRenderer.invoke('git:unstage', cwd, filePath),
-  gitCommit: (cwd: string, message: string, name: string, email: string): Promise<string> =>
-    ipcRenderer.invoke('git:commit', cwd, message, name, email),
-  gitPush: (cwd: string, pat?: string): Promise<void> =>
-    ipcRenderer.invoke('git:push', cwd, pat),
-  gitPull: (cwd: string, pat?: string): Promise<void> =>
-    ipcRenderer.invoke('git:pull', cwd, pat),
-  gitBranches: (cwd: string): Promise<string[]> =>
-    ipcRenderer.invoke('git:branches', cwd),
-  gitCheckout: (cwd: string, branch: string, create?: boolean): Promise<void> =>
-    ipcRenderer.invoke('git:checkout', cwd, branch, create ?? false),
-  gitInit: (cwd: string): Promise<void> =>
-    ipcRenderer.invoke('git:init', cwd),
-  gitDiff: (cwd: string, filePath: string): Promise<string> =>
-    ipcRenderer.invoke('git:diff', cwd, filePath),
-
-  // ── GitHub ───────────────────────────────────────────────────────────
-  githubAuth: (pat: string): Promise<string> =>
-    ipcRenderer.invoke('github:auth', pat),
-  githubLogout: (): void =>
-    ipcRenderer.invoke('github:logout'),
-  githubStatus: (): Promise<{ isAuthenticated: boolean; username: string | null }> =>
-    ipcRenderer.invoke('github:status'),
-  githubRepos: (): Promise<GitHubRepo[]> =>
-    ipcRenderer.invoke('github:repos'),
-  githubPRs: (owner: string, repo: string): Promise<GitHubPR[]> =>
-    ipcRenderer.invoke('github:prs', owner, repo),
-  githubCreatePR: (opts: CreatePROptions): Promise<GitHubPR> =>
-    ipcRenderer.invoke('github:createPr', opts),
-
   // ── Settings ─────────────────────────────────────────────────────────
   getSettings: (): Promise<AppSettings> =>
     ipcRenderer.invoke('settings:getAll'),
@@ -164,10 +130,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('chat:save', messages),
   loadChatHistory: (): Promise<ChatMessage[]> =>
     ipcRenderer.invoke('chat:load'),
-  saveChatSessions: (data: ChatSessionsData): Promise<void> =>
-    ipcRenderer.invoke('chat:saveSessions', data),
-  loadChatSessions: (): Promise<ChatSessionsData> =>
-    ipcRenderer.invoke('chat:loadSessions'),
+  saveChatSessions: (data: ChatSessionsData, workspacePath?: string | null): Promise<void> =>
+    ipcRenderer.invoke('chat:saveSessions', data, workspacePath ?? null),
+  loadChatSessions: (workspacePath?: string | null): Promise<ChatSessionsData> =>
+    ipcRenderer.invoke('chat:loadSessions', workspacePath ?? null),
 
   // ── Terminal ─────────────────────────────────────────────────────────
   termCreate: (id: string, cwd: string): Promise<{ cols: number; rows: number }> =>
@@ -200,6 +166,8 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('agent:parseToolCalls', text),
   agentClearSession: (sessionId: string): Promise<void> =>
     ipcRenderer.invoke('agent:clearSession', sessionId),
+  agentClearAllSessions: (): Promise<void> =>
+    ipcRenderer.invoke('agent:clearAllSessions'),
   agentRestoreSession: (
     sessionId: string,
     messages: import('../shared/agent/agentChatMessages').AgentChatMessage[] | null | undefined

@@ -104,35 +104,6 @@
 }
 .select:focus { outline: none; border-color: var(--accent); }
 
-.pathRow {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.pathRow .input { flex: 1; }
-
-.browseBtn {
-  padding: 7px 12px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-light);
-  border-radius: 5px;
-  color: var(--fg-primary);
-  font-size: var(--font-size-sm);
-  flex-shrink: 0;
-}
-.browseBtn:hover { background: var(--bg-selected); }
-
-.clearBtn {
-  padding: 7px 8px;
-  background: transparent;
-  border: 1px solid var(--border-light);
-  border-radius: 5px;
-  color: var(--fg-secondary);
-  font-size: var(--font-size-xs);
-  flex-shrink: 0;
-}
-.clearBtn:hover { color: var(--accent-red); border-color: var(--accent-red); }
-
 .hint {
   font-size: 11px;
   color: var(--fg-muted);

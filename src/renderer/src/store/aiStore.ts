@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ChatMessage, ChatSession, ImageAttachment, ChatMessageAttachment } from '@shared/types'
+import type { ChatMessage, ChatMessageAttachment, ChatSession, ImageAttachment } from '@shared/types'
 import type {
   AgentCompletionUsage,
   AgentMode,
@@ -69,7 +69,8 @@ interface AiState {
   finalizeMessage: (id: string) => void
   setStop: (fn: (() => void) | null) => void
   stop: () => void
-  loadSessions: () => Promise<void>
+  /** Load chat tabs for a workspace (null = no folder open). */
+  switchWorkspaceChats: (workspacePath: string | null) => Promise<void>
   setModelStatus: (loaded: boolean, name: string | null) => void
   sendMessage: (
     prompt: string,
@@ -169,16 +170,98 @@ function trimClosedSessions(closed: ChatSession[]): ChatSession[] {
 let _msgId = 1
 let _sessionId = 1
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+/** Workspace path (or null) that current in-memory sessions belong to. */
+let chatWorkspacePath: string | null = null
+/** Avoid overwriting on-disk sessions with empty state before first load. */
+let chatSessionsHydrated = false
 
-function scheduleSave(state: Pick<AiState, 'sessions' | 'activeSessionId' | 'closedSessions'>) {
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    void window.api.saveChatSessions({
+type SessionsSnapshot = Pick<AiState, 'sessions' | 'activeSessionId' | 'closedSessions'>
+
+async function flushSaveNow(
+  state: SessionsSnapshot,
+  workspacePath: string | null = chatWorkspacePath
+): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  await window.api.saveChatSessions(
+    {
       sessions: state.sessions,
       activeSessionId: state.activeSessionId,
       closedSessions: state.closedSessions,
-    })
+    },
+    workspacePath
+  )
+}
+
+function scheduleSave(state: SessionsSnapshot) {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    void flushSaveNow(state)
   }, 400)
+}
+
+async function loadSessionsForWorkspace(
+  workspacePath: string | null,
+  set: (partial: Partial<AiState> | ((state: AiState) => Partial<AiState>)) => void,
+  get: () => AiState
+): Promise<void> {
+  try {
+    const data = await window.api.loadChatSessions(workspacePath)
+    let { sessions, activeSessionId, closedSessions } = data
+    const rawClosed = closedSessions ?? []
+    closedSessions = trimClosedSessions(rawClosed)
+
+    if (sessions.length === 0) {
+      const id = String(_sessionId++)
+      sessions = [{
+        id,
+        title: t.newChat,
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }]
+      activeSessionId = id
+      chatWorkspacePath = workspacePath
+      scheduleSave({ sessions, activeSessionId, closedSessions })
+    } else {
+      const maxSession = Math.max(
+        ...sessions.map((s) => Number(s.id)),
+        ...closedSessions.map((s) => Number(s.id)),
+        0
+      )
+      const maxMsg = sessions.flatMap((s) => s.messages).reduce((m, msg) => Math.max(m, Number(msg.id)), 0)
+      _sessionId = Math.max(_sessionId, maxSession + 1)
+      _msgId = Math.max(_msgId, maxMsg + 1)
+    }
+
+    if (!activeSessionId || !sessions.some((s) => s.id === activeSessionId)) {
+      activeSessionId = sessions[0].id
+    }
+
+    if (closedSessions.length !== rawClosed.length) {
+      chatWorkspacePath = workspacePath
+      scheduleSave({ sessions, activeSessionId, closedSessions })
+    }
+
+    chatWorkspacePath = workspacePath
+    const active = sessions.find((s) => s.id === activeSessionId)!
+    applySessionUiToRuntime(active)
+    set({
+      sessions,
+      activeSessionId,
+      closedSessions,
+      isStreaming: false,
+      streamingSessionId: null,
+      streamingMessageId: null,
+      stopFn: null,
+      ...runtimeStateFromSession(active),
+    })
+    syncLlmHistory(active.messages)
+    await syncAgentSession(active)
+    chatSessionsHydrated = true
+  } catch { /* non-fatal */ }
 }
 
 function syncLlmHistory(messages: ChatMessage[]) {
@@ -638,8 +721,6 @@ export const useAiStore = create<AiState>((set, get) => ({
   },
 
   createSession: () => {
-    if (get().isStreaming) get().forceAbortStream()
-
     const state = get()
     const ui = readActiveSessionUi(state)
     const sessionsWithSnapshot = snapshotActiveSessionToSessions(state.sessions, state.activeSessionId, ui)
@@ -671,7 +752,6 @@ export const useAiStore = create<AiState>((set, get) => ({
     const state = get()
     const session = state.sessions.find((s) => s.id === id)
     if (!session || state.activeSessionId === id) return
-    if (state.isStreaming) get().forceAbortStream()
 
     const ui = readActiveSessionUi(state)
     const sessions = snapshotActiveSessionToSessions(state.sessions, state.activeSessionId, ui)
@@ -691,7 +771,6 @@ export const useAiStore = create<AiState>((set, get) => ({
   restoreSession: (id) => {
     const session = get().closedSessions.find((s) => s.id === id)
     if (!session) return
-    if (get().isStreaming) get().forceAbortStream()
 
     const closedSessions = get().closedSessions.filter((s) => s.id !== id)
     const sessions = [...get().sessions, session]
@@ -1193,54 +1272,29 @@ export const useAiStore = create<AiState>((set, get) => ({
     get().forceAbortStream()
   },
 
-  loadSessions: async () => {
-    try {
-      const data = await window.api.loadChatSessions()
-      let { sessions, activeSessionId, closedSessions } = data
-      const rawClosed = closedSessions ?? []
-      closedSessions = trimClosedSessions(rawClosed)
+  switchWorkspaceChats: async (workspacePath) => {
+    const normalized = workspacePath?.trim() || null
+    if (normalized === chatWorkspacePath) return
 
-      if (sessions.length === 0) {
-        const id = String(_sessionId++)
-        sessions = [{
-          id,
-          title: t.newChat,
-          messages: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        }]
-        activeSessionId = id
-        scheduleSave({ sessions, activeSessionId, closedSessions })
-      } else {
-        const maxSession = Math.max(
-          ...sessions.map((s) => Number(s.id)),
-          ...closedSessions.map((s) => Number(s.id)),
-          0
-        )
-        const maxMsg = sessions.flatMap((s) => s.messages).reduce((m, msg) => Math.max(m, Number(msg.id)), 0)
-        _sessionId = Math.max(_sessionId, maxSession + 1)
-        _msgId = Math.max(_msgId, maxMsg + 1)
-      }
+    const state = get()
+    if (state.isStreaming) get().forceAbortStream()
 
-      if (!activeSessionId || !sessions.some((s) => s.id === activeSessionId)) {
-        activeSessionId = sessions[0].id
-      }
+    if (chatSessionsHydrated) {
+      await flushSaveNow(
+        {
+          sessions: state.sessions,
+          activeSessionId: state.activeSessionId,
+          closedSessions: state.closedSessions,
+        },
+        chatWorkspacePath
+      )
+    }
 
-      if (closedSessions.length !== rawClosed.length) {
-        scheduleSave({ sessions, activeSessionId, closedSessions })
-      }
+    await window.api.agentClearAllSessions()
+    await window.api.clearHistory()
 
-      const active = sessions.find((s) => s.id === activeSessionId)!
-      applySessionUiToRuntime(active)
-      set({
-        sessions,
-        activeSessionId,
-        closedSessions,
-        ...runtimeStateFromSession(active),
-      })
-      syncLlmHistory(active.messages)
-      await syncAgentSession(active)
-    } catch { /* non-fatal */ }
+    chatWorkspacePath = normalized
+    await loadSessionsForWorkspace(normalized, set, get)
   },
 
   setModelStatus: (loaded: boolean, name: string | null) =>

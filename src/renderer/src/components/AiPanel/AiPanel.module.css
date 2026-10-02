@@ -56,6 +56,20 @@
   z-index: 1;
 }
 
+.chatTabStreaming:not(.chatTabActive) {
+  color: var(--accent);
+}
+
+.chatTabStreaming:not(.chatTabActive) .chatTabIcon {
+  color: var(--accent);
+  animation: chatTabPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chatTabPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 .chatTabIcon {
   display: flex;
   align-items: center;
@@ -422,7 +436,7 @@
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-.modePill:not(:disabled):hover {
+.modePillAgent:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.09);
   color: var(--fg-primary);
 }
@@ -432,13 +446,36 @@
   cursor: default;
 }
 
-.modePillAgent,
-.modePillPlan,
-.modePillAsk,
-.modePillChat {
+.modePillAgent {
   border-color: var(--composer-pill-border);
   color: var(--composer-pill-fg);
   background: var(--composer-pill-bg);
+}
+
+.modePillPlan {
+  --mode-pill-accent: var(--accent-orange);
+  border-color: color-mix(in srgb, var(--mode-pill-accent) 48%, transparent);
+  background: color-mix(in srgb, var(--mode-pill-accent) 18%, transparent);
+  color: var(--mode-pill-accent);
+}
+
+.modePillPlan:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--mode-pill-accent) 62%, transparent);
+  background: color-mix(in srgb, var(--mode-pill-accent) 26%, transparent);
+  color: var(--mode-pill-accent);
+}
+
+.modePillChat {
+  --mode-pill-accent: var(--accent-green);
+  border-color: color-mix(in srgb, var(--mode-pill-accent) 48%, transparent);
+  background: color-mix(in srgb, var(--mode-pill-accent) 16%, transparent);
+  color: var(--mode-pill-accent);
+}
+
+.modePillChat:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--mode-pill-accent) 62%, transparent);
+  background: color-mix(in srgb, var(--mode-pill-accent) 24%, transparent);
+  color: var(--mode-pill-accent);
 }
 
 .modeIcon {
@@ -606,6 +643,18 @@
 
 .composerActionSendActive:hover:not(:disabled) {
   opacity: 0.88;
+}
+
+.composerDragOver {
+  outline: 1px solid var(--accent-blue);
+  outline-offset: -1px;
+}
+
+.composerAttachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 0;
 }
 
 .imagePreviews {

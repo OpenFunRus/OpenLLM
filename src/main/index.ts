@@ -4,8 +4,6 @@ import type { App, NativeTheme, IpcMain } from 'electron'
 
 import { registerFsHandlers } from './ipc/fsHandlers'
 import { registerLlmHandlers } from './ipc/llmHandlers'
-import { registerGitHandlers } from './ipc/gitHandlers'
-import { registerGitHubHandlers } from './ipc/githubHandlers'
 import { registerTerminalHandlers } from './ipc/terminalHandlers'
 import { registerSettingsHandlers } from './ipc/settingsHandlers'
 import { registerAgentHandlers } from './ipc/agentHandlers'
@@ -147,8 +145,6 @@ setImmediate(() => {
 
     registerFsHandlers()
     registerLlmHandlers() // restores active API model if configured
-    registerGitHandlers()
-    registerGitHubHandlers()
     registerTerminalHandlers()
     registerSettingsHandlers()
     registerAgentHandlers()

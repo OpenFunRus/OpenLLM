@@ -21,3 +21,9 @@ test_electron_require.cjs
 test_processtype.mjs
 test_esm_app/
 test_minimal/
+
+# Local test workspace artifacts
+test/.openllm/
+test/test.txt
+test/test_example.js
+test/src/

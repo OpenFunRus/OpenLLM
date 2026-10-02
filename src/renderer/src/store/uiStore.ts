@@ -1,8 +1,13 @@
 import { create } from 'zustand'
 import type { AppSettings } from '../../../shared/types'
-import type { ComposerMode, PendingAskQuestion, PendingSwitchMode } from '../../../shared/agent/types'
+import {
+  normalizeComposerMode,
+  type ComposerMode,
+  type PendingAskQuestion,
+  type PendingSwitchMode,
+} from '../../../shared/agent/types'
 
-type SidebarPanel = 'files' | 'git' | 'models' | 'github'
+type SidebarPanel = 'files'
 type Theme = 'dark' | 'light'
 
 const SIDEBAR_MIN = 180
@@ -49,8 +54,8 @@ interface UiState {
   terminalVisible: boolean
   commandPaletteOpen: boolean
   modelManagerOpen: boolean
-  githubModalOpen: boolean
   settingsOpen: boolean
+  projectManagerOpen: boolean
   pendingAskQuestion: PendingAskQuestion | null
   pendingSwitchMode: PendingSwitchMode | null
   composerMode: ComposerMode
@@ -69,8 +74,8 @@ interface UiState {
   toggleTerminal: () => void
   setCommandPaletteOpen: (open: boolean) => void
   setModelManagerOpen: (open: boolean) => void
-  setGithubModalOpen: (open: boolean) => void
   setSettingsOpen: (open: boolean) => void
+  setProjectManagerOpen: (open: boolean) => void
   setPendingAskQuestion: (question: PendingAskQuestion | null) => void
   clearPendingAskQuestion: () => void
   setPendingSwitchMode: (request: PendingSwitchMode | null) => void
@@ -97,8 +102,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   terminalVisible: false,
   commandPaletteOpen: false,
   modelManagerOpen: false,
-  githubModalOpen: false,
   settingsOpen: false,
+  projectManagerOpen: false,
   pendingAskQuestion: null,
   pendingSwitchMode: null,
   composerMode: 'agent',
@@ -127,8 +132,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   setTerminalVisible: (visible) => set({ terminalVisible: visible }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setModelManagerOpen: (open) => set({ modelManagerOpen: open }),
-  setGithubModalOpen: (open) => set({ githubModalOpen: open }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+  setProjectManagerOpen: (open) => set({ projectManagerOpen: open }),
 
   setPendingAskQuestion: (question) => set({ pendingAskQuestion: question }),
 
@@ -138,7 +143,7 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   clearPendingSwitchMode: () => set({ pendingSwitchMode: null }),
 
-  setComposerMode: (mode) => set({ composerMode: mode }),
+  setComposerMode: (mode) => set({ composerMode: normalizeComposerMode(mode) }),
 
   setStatusMessage: (msg, durationMs = 3000) => {
     set({ statusMessage: msg })

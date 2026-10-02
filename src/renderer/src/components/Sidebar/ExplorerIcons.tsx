@@ -6,5 +6,5 @@ export {
   IconFile,
   IconNewFile,
   IconNewFolder,
-  IconRefresh,
+  IconOpenInExplorer,
 } from '../icons/Icons'
