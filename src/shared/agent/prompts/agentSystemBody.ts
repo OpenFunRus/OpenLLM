@@ -87,6 +87,13 @@ export const AGENT_TERMINAL_FILES = `<terminal_files_information>
 The terminals folder contains text files representing shell sessions from agent tools. Each file is named {id}.txt with metadata (pid, cwd, last_command) in the header and output in the body. Read these files with the Read tool to inspect command output.
 </terminal_files_information>`
 
+export const AGENT_CONTEXT_MANAGEMENT = `<context_management>
+Long agent sessions may be compressed automatically. When you see
+<conversation_summary>, treat it as faithful prior context. Continue the task
+without asking the user to repeat information already covered in the summary,
+unless a specific detail is missing or ambiguous.
+</context_management>`
+
 export const AGENT_SECTIONS = [
   AGENT_IDENTITY,
   AGENT_SYSTEM_COMMUNICATION,
@@ -95,7 +102,8 @@ export const AGENT_SECTIONS = [
   AGENT_MAKING_CODE_CHANGES,
   AGENT_CITING_CODE,
   AGENT_INLINE_LINE_NUMBERS,
-  AGENT_TERMINAL_FILES
+  AGENT_TERMINAL_FILES,
+  AGENT_CONTEXT_MANAGEMENT,
 ] as const
 
 export const AGENT_NATIVE_SECTIONS = [
@@ -107,4 +115,5 @@ export const AGENT_NATIVE_SECTIONS = [
   AGENT_CITING_CODE,
   AGENT_INLINE_LINE_NUMBERS,
   AGENT_TERMINAL_FILES,
+  AGENT_CONTEXT_MANAGEMENT,
 ] as const

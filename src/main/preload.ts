@@ -220,6 +220,7 @@ contextBridge.exposeInMainWorld('api', {
     onToken: (token: string) => void,
     onReasoningToken: (token: string) => void,
     onContextUsage: (usage: AgentCompletionUsage) => void,
+    onContextSummarized: () => void,
     onAskQuestion: (question: PendingAskQuestion) => void,
     onSwitchMode: (request: PendingSwitchMode) => void,
     onBackgroundTaskDone: (payload: {
@@ -244,6 +245,7 @@ contextBridge.exposeInMainWorld('api', {
     const tokenHandler = (_e: Electron.IpcRendererEvent, token: string) => onToken(token)
     const reasoningHandler = (_e: Electron.IpcRendererEvent, token: string) => onReasoningToken(token)
     const usageHandler = (_e: Electron.IpcRendererEvent, usage: AgentCompletionUsage) => onContextUsage(usage)
+    const summarizedHandler = () => onContextSummarized()
     const askQuestionHandler = (
       _e: Electron.IpcRendererEvent,
       data: PendingAskQuestion
@@ -276,6 +278,7 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.off(`agent:token:${id}`, tokenHandler)
       ipcRenderer.off(`agent:reasoning:${id}`, reasoningHandler)
       ipcRenderer.off(`agent:usage:${id}`, usageHandler)
+      ipcRenderer.off(`agent:summarized:${id}`, summarizedHandler)
       ipcRenderer.off(`agent:askQuestion:${id}`, askQuestionHandler)
       ipcRenderer.off(`agent:switchMode:${id}`, switchModeHandler)
       ipcRenderer.off(`agent:taskDone:${id}`, taskDoneHandler)
@@ -288,6 +291,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(`agent:token:${id}`, tokenHandler)
     ipcRenderer.on(`agent:reasoning:${id}`, reasoningHandler)
     ipcRenderer.on(`agent:usage:${id}`, usageHandler)
+    ipcRenderer.on(`agent:summarized:${id}`, summarizedHandler)
     ipcRenderer.on(`agent:askQuestion:${id}`, askQuestionHandler)
     ipcRenderer.on(`agent:switchMode:${id}`, switchModeHandler)
     ipcRenderer.on(`agent:taskDone:${id}`, taskDoneHandler)

@@ -595,6 +595,7 @@ async function launchAgentSessionRun(
       (token) => appendAgentStreamToken(assistantId, token),
       (token) => appendAgentReasoningToken(assistantId, token),
       (usage) => setAgentContextUsage(usage),
+      () => useUiStore.getState().setStatusMessage(t.agentContextSummarized, 2000),
       (question) => useUiStore.getState().setPendingAskQuestion(question),
       (request) => useUiStore.getState().setPendingSwitchMode(request),
       onBackgroundTask,

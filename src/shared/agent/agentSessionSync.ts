@@ -1,6 +1,7 @@
 import type { AgentChatMessage } from './agentChatMessages'
 import type { ChatMessage } from '../types'
 import { hasAgentBootstrap } from './agentSessionBootstrap'
+import { stripConversationSummaryMessages } from './contextSummarizer'
 
 export { hasAgentBootstrap } from './agentSessionBootstrap'
 
@@ -34,6 +35,8 @@ export function trimAgentMessagesToChat(
   chatMessages: ChatMessage[]
 ): AgentChatMessage[] | undefined {
   if (!agentMessages?.length || !hasAgentBootstrap(agentMessages)) return agentMessages
+
+  agentMessages = stripConversationSummaryMessages(agentMessages) ?? agentMessages
 
   const ui = chatMessages.filter((m) => !m.isStreaming)
   const uiUsers = ui.filter((m) => m.role === 'user').map((m) => m.content.trim())

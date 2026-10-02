@@ -1,7 +1,8 @@
 # План: LLM-суммаризация контекста агента (Plan B)
 
-> **Статус:** draft — на ревью перед реализацией  
+> **Статус:** implemented (v1)  
 > **Дата:** 2026-10-02  
+> **Implemented:** 2026-10-02  
 > **Связано:** [handoff.md](../handoff.md), [agent-migration-plan.md](../cursor/agent-migration-plan.md)
 
 ---
@@ -478,58 +479,58 @@ flowchart TD
 
 ### Phase 1 — Settings & types
 
-- [ ] **T1.1** Добавить поля summarize в `AppSettings` (`src/shared/types.ts`)
-- [ ] **T1.2** Defaults в `AGENT_SETTINGS_DEFAULTS` (`src/shared/agent/agentSettings.ts`)
-- [ ] **T1.3** Migration `agentLimitsVersion: 3` в `SettingsService.ts` (map `agentContextStopPercent` → `agentSummarizeAtPercent`)
-- [ ] **T1.4** i18n keys RU (`src/shared/i18n.ts`)
-- [ ] **T1.5** Settings UI группа (`SettingsModal.tsx`) + WelcomeScreen hints (optional)
+- [x] **T1.1** Добавить поля summarize в `AppSettings` (`src/shared/types.ts`)
+- [x] **T1.2** Defaults в `AGENT_SETTINGS_DEFAULTS` (`src/shared/agent/agentSettings.ts`)
+- [x] **T1.3** Migration `agentLimitsVersion: 3` в `SettingsService.ts` (map `agentContextStopPercent` → `agentSummarizeAtPercent`)
+- [x] **T1.4** i18n keys RU (`src/shared/i18n.ts`)
+- [x] **T1.5** Settings UI группа (`SettingsModal.tsx`) + WelcomeScreen hints (optional)
 
 ### Phase 2 — Core summarizer (shared)
 
-- [ ] **T2.1** Создать `src/shared/agent/summaryPrompts.ts` (EN meta-prompts)
-- [ ] **T2.2** Создать `src/shared/agent/contextSummarizer.ts`:
-  - [ ] `splitAgentHistoryForSummary` (turn-aware tail)
-  - [ ] `isConversationSummaryMessage`
-  - [ ] `serializeAgentSegmentForSummary`
-  - [ ] `squeezeToolOutputsForSummary` (copy-only)
-  - [ ] `buildSummaryInjectionMessage`
-  - [ ] `mergeHistoryAfterSummary`
-  - [ ] `estimateAgentMessagesTokens` (reuse logic from LlmService or extract shared)
+- [x] **T2.1** Создать `src/shared/agent/summaryPrompts.ts` (EN meta-prompts)
+- [x] **T2.2** Создать `src/shared/agent/contextSummarizer.ts`:
+  - [x] `splitAgentHistoryForSummary` (turn-aware tail)
+  - [x] `isConversationSummaryMessage`
+  - [x] `serializeAgentSegmentForSummary`
+  - [x] `squeezeToolOutputsForSummary` (copy-only)
+  - [x] `buildSummaryInjectionMessage`
+  - [x] `mergeHistoryAfterSummary`
+  - [x] `estimateAgentMessagesTokens` (reuse logic from LlmService or extract shared)
 - [ ] **T2.3** Unit tests для split/merge/isSummary (если test runner доступен)
 
 ### Phase 3 — LLM side-call (main)
 
-- [ ] **T3.1** `LlmService.completeMessagesForSummary(system, user, modelId?)` — no tools, stream false
-- [ ] **T3.2** Model override: временно switch config на `agentSummarizeModelId` или pass model in payload
-- [ ] **T3.3** `src/main/agent/runContextSummarization.ts` — orchestration + fallback
-- [ ] **T3.4** Debug log label `completeMessagesForSummary` в `llmApiDebugLog`
+- [x] **T3.1** `LlmService.completeMessagesForSummary(system, user, modelId?)` — no tools, stream false
+- [x] **T3.2** Model override: временно switch config на `agentSummarizeModelId` или pass model in payload
+- [x] **T3.3** `src/main/agent/runContextSummarization.ts` — orchestration + fallback
+- [x] **T3.4** Debug log label `completeMessagesForSummary` в `llmApiDebugLog`
 
 ### Phase 4 — AgentOrchestrator integration
 
-- [ ] **T4.1** Helper `shouldSummarize(messages, settings, usage?)`
-- [ ] **T4.2** Hook перед каждым LLM step в run loop
-- [ ] **T4.3** Заменить `pauseReason: 'context'` logic: summarize first → re-check → pause only if needed
-- [ ] **T4.4** Respect `agentSummarizeMode` auto vs pause
-- [ ] **T4.5** `setAgentSessionMessages` после successful summary
-- [ ] **T4.6** Optional callback / status message для toast (renderer via existing IPC event или reuse context usage event)
+- [x] **T4.1** Helper `shouldSummarize(messages, settings, usage?)`
+- [x] **T4.2** Hook перед каждым LLM step в run loop
+- [x] **T4.3** Заменить `pauseReason: 'context'` logic: summarize first → re-check → pause only if needed
+- [x] **T4.4** Respect `agentSummarizeMode` auto vs pause
+- [x] **T4.5** `setAgentSessionMessages` после successful summary
+- [x] **T4.6** Optional callback / status message для toast (renderer via existing IPC event или reuse context usage event)
 
 ### Phase 5 — System prompt
 
-- [ ] **T5.1** `<context_management>` block в `agentSystemBody.ts`
-- [ ] **T5.2** Подключить в `promptBuilder.ts` для agent mode
-- [ ] **T5.3** Regenerate / verify agent system prompt length OK
+- [x] **T5.1** `<context_management>` block в `agentSystemBody.ts`
+- [x] **T5.2** Подключить в `promptBuilder.ts` для agent mode
+- [x] **T5.3** Regenerate / verify agent system prompt length OK
 
 ### Phase 6 — Rollback & persistence safety
 
-- [ ] **T6.1** В `trimAgentMessagesToChat` или `syncAgentSessionFromChat`: strip summary messages on UI sync
-- [ ] **T6.2** Verify `persistAgentMessages` persists compressed API history without touching UI messages
+- [x] **T6.1** В `trimAgentMessagesToChat` или `syncAgentSessionFromChat`: strip summary messages on UI sync
+- [x] **T6.2** Verify `persistAgentMessages` persists compressed API history without touching UI messages
 - [ ] **T6.3** Verify app restart: `agentRestoreSession` loads summary-enriched history
 
 ### Phase 7 — QA & docs
 
 - [ ] **T7.1** Manual test checklist (секция выше)
-- [ ] **T7.2** `npm run build:win`
-- [ ] **T7.3** Обновить этот doc: status → implemented, дата, known limits
+- [x] **T7.2** `npm run build:win`
+- [x] **T7.3** Обновить этот doc: status → implemented, дата, known limits
 - [ ] **T7.4** Короткая заметка в `handoff.md` § Agent context
 
 ---

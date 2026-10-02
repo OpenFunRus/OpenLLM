@@ -415,6 +415,66 @@ class LlmService {
     this.isLoaded = true
   }
 
+  /** One-shot summary call — no tools, no stream, optional model override. */
+  async completeMessagesForSummary(
+    system: string,
+    user: string,
+    modelId?: string | null
+  ): Promise<string> {
+    const config = modelId
+      ? modelRegistryService.getById(modelId) ?? this.getConfig()
+      : this.getConfig()
+    if (!config) throw new Error('Модель не найдена')
+
+    const url = resolveChatUrl(config.url)
+    const authType = config.authType === 'auto'
+      ? (config.token ? 'auto' : 'none')
+      : (config.authType ?? 'none')
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(config.token, authType),
+    }
+
+    const messages: ChatApiMessage[] = [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ]
+    const payload = buildChatCompletionPayload(config, messages, false, {})
+    const reqId = logLlmRequest({ label: 'completeMessagesForSummary', url, headers, body: payload })
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '')
+      logLlmResponse({
+        id: reqId,
+        label: 'completeMessagesForSummary',
+        status: response.status,
+        headers: headersToRecord(response.headers),
+        error: errText,
+      })
+      throw new Error(`HTTP ${response.status}${errText ? `: ${errText.slice(0, 200)}` : ''}`)
+    }
+
+    const json = await response.json() as {
+      choices?: Array<{ message?: { content?: string } }>
+      error?: { message?: string }
+    }
+    logLlmResponse({
+      id: reqId,
+      label: 'completeMessagesForSummary',
+      status: response.status,
+      headers: headersToRecord(response.headers),
+      body: json,
+    })
+    if (json.error?.message) throw new Error(json.error.message)
+    return json.choices?.[0]?.message?.content ?? ''
+  }
+
   /** One-shot completion for agent loop — does not mutate chat history. */
   async completeMessages(
     messages: ChatApiMessage[],

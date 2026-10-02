@@ -100,6 +100,33 @@ class SettingsService {
             parsed.agentContextStopPercent ?? AGENT_SETTINGS_DEFAULTS.agentContextStopPercent,
           agentLimitsVersion: 2,
         }
+      }
+
+      if ((merged.agentLimitsVersion ?? 0) < 3) {
+        const legacyPercent =
+          parsed.agentSummarizeAtPercent
+          ?? parsed.agentContextStopPercent
+          ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeAtPercent
+        merged = {
+          ...merged,
+          agentSummarizeEnabled:
+            parsed.agentSummarizeEnabled ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeEnabled,
+          agentSummarizeAtPercent: legacyPercent,
+          agentSummarizeTargetRatio:
+            parsed.agentSummarizeTargetRatio ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeTargetRatio,
+          agentSummarizeKeepRecentTurns:
+            parsed.agentSummarizeKeepRecentTurns
+            ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeKeepRecentTurns,
+          agentSummarizeMode:
+            parsed.agentSummarizeMode ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeMode,
+          agentSummarizePreSqueeze:
+            parsed.agentSummarizePreSqueeze ?? AGENT_SETTINGS_DEFAULTS.agentSummarizePreSqueeze,
+          agentSummarizeModelId:
+            parsed.agentSummarizeModelId ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeModelId,
+          agentContextStopPercent:
+            parsed.agentContextStopPercent ?? AGENT_SETTINGS_DEFAULTS.agentContextStopPercent,
+          agentLimitsVersion: 3,
+        }
         this.data = merged
         this.save()
       } else {

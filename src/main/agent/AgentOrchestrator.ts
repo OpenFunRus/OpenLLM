@@ -44,6 +44,11 @@ import { createToolExecutor } from './ToolExecutor'
 import { getRuntimeEnvironment } from './runtimeEnv'
 import { getShellService } from './shellRegistry'
 import { AgentAbortedError } from '../../shared/agent/errors'
+import { estimateAgentMessagesTokens } from '../../shared/agent/contextSummarizer'
+import {
+  shouldSummarizeAgentHistory,
+  trySummarizeAgentHistory,
+} from './runContextSummarization'
 
 export type AgentRunCallbacks = {
   onTool?: (event: AgentToolEvent) => void
@@ -52,6 +57,7 @@ export type AgentRunCallbacks = {
   onToken?: (token: string) => void
   onReasoningToken?: (token: string) => void
   onContextUsage?: (usage: AgentCompletionUsage) => void
+  onContextSummarized?: () => void
   isAborted?: () => boolean
 }
 
@@ -217,8 +223,10 @@ export class AgentOrchestrator {
     const batchWallMs =
       (settingsService.get('agentMaxWallTimeMin') ?? AGENT_SETTINGS_DEFAULTS.agentMaxWallTimeMin) *
       60_000
-    const contextStopPercent =
-      settingsService.get('agentContextStopPercent') ?? AGENT_SETTINGS_DEFAULTS.agentContextStopPercent
+    const summarizeAtPercent =
+      settingsService.get('agentSummarizeAtPercent') ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeAtPercent
+    const summarizeMode =
+      settingsService.get('agentSummarizeMode') ?? AGENT_SETTINGS_DEFAULTS.agentSummarizeMode
     const priorSteps = payload.continueRun?.priorSteps ?? 0
     const hardMaxSteps = AGENT_HARD_LIMITS.maxSteps
     const displayMaxSteps = Math.min(hardMaxSteps, priorSteps + batchSteps)
@@ -304,6 +312,47 @@ export class AgentOrchestrator {
     let pauseReason: AgentPauseReason | undefined
     lastToolDeltaSnapshot.clear()
 
+    const maybeSummarizeContext = async (): Promise<boolean> => {
+      const promptTokens = lastUsage?.promptTokens ?? estimateAgentMessagesTokens(messages)
+      if (!shouldSummarizeAgentHistory(messages, promptTokens)) {
+        if (
+          summarizeMode === 'pause'
+          && contextUsagePercent(promptTokens) >= summarizeAtPercent
+        ) {
+          paused = true
+          pauseReason = 'context'
+          return true
+        }
+        return false
+      }
+
+      const result = await trySummarizeAgentHistory(messages, promptTokens)
+      if (!result.summarized) {
+        if (summarizeMode === 'pause' && contextUsagePercent(promptTokens) >= summarizeAtPercent) {
+          paused = true
+          pauseReason = 'context'
+          return true
+        }
+        return false
+      }
+
+      messages = result.messages
+      setAgentSessionMessages(sessionId, messages)
+      callbacks.onContextSummarized?.()
+      lastUsage = undefined
+
+      const estimated = estimateAgentMessagesTokens(messages)
+      if (
+        summarizeMode === 'pause'
+        && contextUsagePercent(estimated) >= summarizeAtPercent
+      ) {
+        paused = true
+        pauseReason = 'context'
+        return true
+      }
+      return false
+    }
+
     for (let step = 0; step < batchSteps; step++) {
       const totalStep = priorSteps + step + 1
       if (callbacks.isAborted?.()) break
@@ -319,6 +368,8 @@ export class AgentOrchestrator {
       }
 
       callbacks.onStepStart?.(totalStep, displayMaxSteps)
+
+      if (await maybeSummarizeContext()) break
 
       if (nativeTools) {
         let stepThinkingCommitted = false
@@ -375,12 +426,6 @@ export class AgentOrchestrator {
         }
         messages.push(...toolResultsToNativeMessages(executed.results))
         batchStepCount = step + 1
-
-        if (lastUsage && contextUsagePercent(lastUsage.promptTokens) >= contextStopPercent) {
-          paused = true
-          pauseReason = 'context'
-          break
-        }
         continue
       }
 
@@ -436,12 +481,6 @@ export class AgentOrchestrator {
       })
 
       batchStepCount = step + 1
-
-      if (lastUsage && contextUsagePercent(lastUsage.promptTokens) >= contextStopPercent) {
-        paused = true
-        pauseReason = 'context'
-        break
-      }
     }
 
     const totalSteps = priorSteps + batchStepCount

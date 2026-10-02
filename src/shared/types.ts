@@ -203,8 +203,22 @@ export interface AppSettings {
   agentMaxWallTimeMin: number
   /** Agent: auto-continue next batch when soft limit hit (default true). */
   agentAutoContinue: boolean
-  /** Agent: pause batch when context usage exceeds this % (default 92). */
+  /** @deprecated use agentSummarizeAtPercent */
   agentContextStopPercent: number
+  /** Agent: LLM summarization of middle history when context is full. */
+  agentSummarizeEnabled: boolean
+  /** Agent: summarize when prompt tokens exceed this % of model context. */
+  agentSummarizeAtPercent: number
+  /** Agent: target summary length ratio (0.2 ≈ 80% compression). */
+  agentSummarizeTargetRatio: number
+  /** Agent: keep last N user turns verbatim after summarization. */
+  agentSummarizeKeepRecentTurns: number
+  /** Agent: auto-continue after summarize vs pause batch. */
+  agentSummarizeMode: import('./agent/agentSettings').AgentSummarizeMode
+  /** Agent: truncate tool bodies before summary LLM call. */
+  agentSummarizePreSqueeze: boolean
+  /** Agent: model id for summary calls; null = active model. */
+  agentSummarizeModelId: string | null
   /** Optional Tavily API key for WebSearch (free tier: 1000/month). Keyless works without it. */
   tavilyApiKey: string
   /** Internal: agent limits migration version. */

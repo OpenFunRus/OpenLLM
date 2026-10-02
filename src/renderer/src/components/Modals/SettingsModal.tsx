@@ -54,7 +54,13 @@ export function SettingsModal(): JSX.Element | null {
       'agentMaxSteps',
       'agentMaxWallTimeMin',
       'agentAutoContinue',
-      'agentContextStopPercent',
+      'agentSummarizeEnabled',
+      'agentSummarizeAtPercent',
+      'agentSummarizeTargetRatio',
+      'agentSummarizeKeepRecentTurns',
+      'agentSummarizeMode',
+      'agentSummarizePreSqueeze',
+      'agentSummarizeModelId',
       'tavilyApiKey',
     ]
     for (const k of keys) await window.api.setSetting(k, settings[k] as AppSettings[typeof k])
@@ -150,16 +156,103 @@ export function SettingsModal(): JSX.Element | null {
                   <span className={styles.hint}>{t.agentAutoContinueHint}</span>
                 </div>
                 <div className={styles.group}>
-                  <label className={styles.label}>{t.agentContextStopPercent}</label>
+                  <label className={styles.label}>{t.agentSummarizeTitle}</label>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={settings.agentSummarizeEnabled}
+                      onChange={(e) => update('agentSummarizeEnabled', e.target.checked)}
+                    />
+                    {t.agentSummarizeEnabled}
+                  </label>
+                  <span className={styles.hint}>{t.agentSummarizeEnabledHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.agentSummarizeAtPercent}</label>
                   <input
                     className={styles.input}
                     type="number"
                     min={50}
                     max={99}
-                    value={settings.agentContextStopPercent}
-                    onChange={(e) => update('agentContextStopPercent', Number(e.target.value))}
+                    disabled={!settings.agentSummarizeEnabled}
+                    value={settings.agentSummarizeAtPercent}
+                    onChange={(e) => update('agentSummarizeAtPercent', Number(e.target.value))}
                   />
-                  <span className={styles.hint}>{t.agentContextStopHint}</span>
+                  <span className={styles.hint}>{t.agentSummarizeAtPercentHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.agentSummarizeTargetRatio}</label>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min={10}
+                    max={50}
+                    disabled={!settings.agentSummarizeEnabled}
+                    value={Math.round(settings.agentSummarizeTargetRatio * 100)}
+                    onChange={(e) =>
+                      update('agentSummarizeTargetRatio', Number(e.target.value) / 100)
+                    }
+                  />
+                  <span className={styles.hint}>{t.agentSummarizeTargetRatioHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.agentSummarizeKeepRecentTurns}</label>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min={1}
+                    max={5}
+                    disabled={!settings.agentSummarizeEnabled}
+                    value={settings.agentSummarizeKeepRecentTurns}
+                    onChange={(e) => update('agentSummarizeKeepRecentTurns', Number(e.target.value))}
+                  />
+                  <span className={styles.hint}>{t.agentSummarizeKeepRecentTurnsHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.agentSummarizeMode}</label>
+                  <select
+                    className={styles.input}
+                    disabled={!settings.agentSummarizeEnabled}
+                    value={settings.agentSummarizeMode}
+                    onChange={(e) =>
+                      update('agentSummarizeMode', e.target.value as AppSettings['agentSummarizeMode'])
+                    }
+                  >
+                    <option value="auto">{t.agentSummarizeModeAuto}</option>
+                    <option value="pause">{t.agentSummarizeModePause}</option>
+                  </select>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={settings.agentSummarizePreSqueeze}
+                      disabled={!settings.agentSummarizeEnabled}
+                      onChange={(e) => update('agentSummarizePreSqueeze', e.target.checked)}
+                    />
+                    {t.agentSummarizePreSqueeze}
+                  </label>
+                  <span className={styles.hint}>{t.agentSummarizePreSqueezeHint}</span>
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>{t.agentSummarizeModelId}</label>
+                  <select
+                    className={styles.input}
+                    disabled={!settings.agentSummarizeEnabled}
+                    value={settings.agentSummarizeModelId ?? ''}
+                    onChange={(e) =>
+                      update('agentSummarizeModelId', e.target.value || null)
+                    }
+                  >
+                    <option value="">{t.agentSummarizeModelActive}</option>
+                    {settings.apiModels.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className={styles.group}>
                   <label className={styles.label}>{t.tavilyApiKey}</label>

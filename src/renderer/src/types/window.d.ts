@@ -117,6 +117,7 @@ declare global {
         onToken: (token: string) => void,
         onReasoningToken: (token: string) => void,
         onContextUsage: (usage: import('../../../../shared/agent/types').AgentCompletionUsage) => void,
+        onContextSummarized: () => void,
         onAskQuestion: (question: import('../../../../shared/agent/types').PendingAskQuestion) => void,
         onSwitchMode: (request: import('../../../../shared/agent/types').PendingSwitchMode) => void,
         onBackgroundTaskDone: (payload: {
