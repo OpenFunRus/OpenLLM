@@ -84,6 +84,7 @@ setImmediate(() => {
 
     win.once('ready-to-show', () => {
       win.show()
+      win.webContents.send('win:maximize-changed', win.isMaximized())
       LOG('ready-to-show')
     })
 
@@ -107,8 +108,19 @@ setImmediate(() => {
       boundsSaveTimer = setTimeout(saveWindowState, 300)
     }
 
-    win.on('maximize', saveWindowState)
-    win.on('unmaximize', saveWindowState)
+    const notifyMaximizeChanged = () => {
+      if (win.isDestroyed()) return
+      win.webContents.send('win:maximize-changed', win.isMaximized())
+    }
+
+    win.on('maximize', () => {
+      saveWindowState()
+      notifyMaximizeChanged()
+    })
+    win.on('unmaximize', () => {
+      saveWindowState()
+      notifyMaximizeChanged()
+    })
     win.on('resize', () => {
       if (!win.isMaximized()) scheduleSaveWindowState()
     })
@@ -150,6 +162,10 @@ setImmediate(() => {
       win.isMaximized() ? win.unmaximize() : win.maximize()
     })
     ipcMain.on('win:close', () => BrowserWindow.getFocusedWindow()?.close())
+    ipcMain.handle('win:isMaximized', () => {
+      const win = BrowserWindow.getFocusedWindow()
+      return win?.isMaximized() ?? false
+    })
 
     const win = createWindow()
     LOG(`window created, id=${win.id}`)

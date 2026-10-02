@@ -29,6 +29,24 @@ import {
 } from '../../../../shared/agent/rollbackImpact'
 import { EditMessageModal } from '../Modals/EditMessageModal'
 import { RollbackConfirmModal } from '../Modals/RollbackConfirmModal'
+import {
+  IconAttach,
+  IconChatTab,
+  IconCheck,
+  IconChevronDown,
+  IconHistory,
+  IconHistoryCount,
+  IconHistoryDate,
+  IconHistoryTitle,
+  IconLoader,
+  IconModeAgent,
+  IconModeAsk,
+  IconModeChat,
+  IconModePlan,
+  IconSend,
+  IconSettings,
+  IconStop,
+} from '../icons/Icons'
 
 interface AttachedImage extends ImageAttachment {
   previewUrl: string
@@ -69,12 +87,12 @@ function composerModeLabel(mode: ComposerMode): string {
   }
 }
 
-function composerModeIcon(mode: ComposerMode): string {
+function ComposerModeIcon({ mode, size = 12 }: { mode: ComposerMode; size?: number }): JSX.Element {
   switch (mode) {
-    case 'chat': return '···'
-    case 'ask': return '?'
-    case 'plan': return '☰'
-    default: return '∞'
+    case 'chat': return <IconModeChat size={size} />
+    case 'ask': return <IconModeAsk size={size} />
+    case 'plan': return <IconModePlan size={size} />
+    default: return <IconModeAgent size={size} />
   }
 }
 
@@ -87,15 +105,6 @@ function composerModePillClass(mode: ComposerMode): string {
   }
 }
 
-function composerModeDotClass(mode: ComposerMode): string {
-  switch (mode) {
-    case 'plan': return styles.modeOptionDotPlan
-    case 'ask': return styles.modeOptionDotAsk
-    case 'chat': return styles.modeOptionDotChat
-    default: return styles.modeOptionDotAgent
-  }
-}
-
 function formatHistoryDate(ts: number): string {
   const d = new Date(ts)
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -104,111 +113,6 @@ function formatHistoryDate(ts: number): string {
 
 function countUserMessages(messages: { role: string }[]): number {
   return messages.filter((m) => m.role === 'user').length
-}
-
-function IconHistoryTitle(): JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" className={styles.historyItemIcon}>
-      <path
-        d="M3 4.5h10a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H8l-2.5 2v-2H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconHistoryCount(): JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" className={styles.historyItemIcon}>
-      <path
-        d="M8 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
-      <path
-        d="M3.5 13.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconHistoryDate(): JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" className={styles.historyItemIcon}>
-      <rect x="3" y="4" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M3 7h10M6 2.5v2.5M10 2.5v2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function IconChatTab(): JSX.Element {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M3 4.5h10a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H8l-2.5 2v-2H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconHistory(): JSX.Element {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M8 5v3.2l2.2 1.3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function IconAttach(): JSX.Element {
-  return (
-    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M10.5 4.5l-4.2 4.2a2 2 0 1 0 2.8 2.8l4.5-4.5a3 3 0 1 0-4.2-4.2L5.2 7.2"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconSend(): JSX.Element {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M8 12.5V3.5M8 3.5L4.5 7.5M8 3.5L11.5 7.5"
-        stroke="currentColor"
-        strokeWidth="1.85"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconStop(): JSX.Element {
-  return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor" />
-    </svg>
-  )
-}
-
-function IconChevronDown(): JSX.Element {
-  return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 6.5L8 10.5L12 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
 }
 
 export function AiPanel(): JSX.Element {
@@ -724,15 +628,15 @@ export function AiPanel(): JSX.Element {
                     title={t.restoreChat}
                   >
                     <span className={styles.historyItemTitle}>
-                      <IconHistoryTitle />
+                      <IconHistoryTitle className={styles.historyItemIcon} />
                       <span className={styles.historyItemTitleText}>{session.title}</span>
                     </span>
                     <span className={styles.historyItemCount}>
-                      <IconHistoryCount />
+                      <IconHistoryCount className={styles.historyItemIcon} />
                       {countUserMessages(session.messages)}
                     </span>
                     <span className={styles.historyItemDate}>
-                      <IconHistoryDate />
+                      <IconHistoryDate className={styles.historyItemIcon} />
                       {formatHistoryDate(session.updatedAt)}
                     </span>
                   </button>
@@ -858,28 +762,33 @@ export function AiPanel(): JSX.Element {
                   onClick={() => setModeDropdownOpen((v) => !v)}
                   title={t.switchMode}
                 >
-                  <span className={styles.modeIcon}>{composerModeIcon(composerMode)}</span>
+                  <span className={styles.modeIcon}><ComposerModeIcon mode={composerMode} /></span>
                   <span>{composerModeLabel(composerMode)}</span>
                   <IconChevronDown />
                 </button>
                 {modeDropdownOpen && modeDropdownPos && createPortal(
                   <div
                     ref={modeDropdownPortalRef}
-                    className={styles.modeDropdownPortal}
+                    className={styles.composerDropdown}
                     style={{ left: modeDropdownPos.left, bottom: modeDropdownPos.bottom }}
                   >
                     {COMPOSER_MODES.map((mode) => (
                       <button
                         key={mode}
                         type="button"
-                        className={`${styles.modeOption} ${mode === composerMode ? styles.modeOptionActive : ''}`}
+                        className={styles.composerDropdownItem}
                         onClick={() => {
                           setComposerMode(mode)
                           setModeDropdownOpen(false)
                         }}
                       >
-                        <span className={`${styles.modeOptionDot} ${composerModeDotClass(mode)}`} />
-                        <span className={styles.modeOptionLabel}>{composerModeLabel(mode)}</span>
+                        <span className={styles.composerDropdownItemIcon}>
+                          <ComposerModeIcon mode={mode} size={16} />
+                        </span>
+                        <span className={styles.composerDropdownItemLabel}>{composerModeLabel(mode)}</span>
+                        <span className={styles.composerDropdownItemCheck}>
+                          {mode === composerMode && <IconCheck size={14} />}
+                        </span>
                       </button>
                     ))}
                   </div>,
@@ -904,36 +813,44 @@ export function AiPanel(): JSX.Element {
                 {modelDropdownOpen && modelDropdownPos && createPortal(
                   <div
                     ref={modelDropdownPortalRef}
-                    className={styles.modelDropdownPortal}
+                    className={`${styles.composerDropdown} ${styles.modelDropdown}`}
                     style={{ left: modelDropdownPos.left, bottom: modelDropdownPos.bottom }}
                   >
                     {models.length === 0 ? (
-                      <div className={styles.modelDropdownEmpty}>{t.noModelsConfigured}</div>
+                      <div className={styles.composerDropdownEmpty}>{t.noModelsConfigured}</div>
                     ) : (
                       models.map((m) => (
                         <button
                           key={m.id}
                           type="button"
-                          className={`${styles.modelOption} ${m.id === activeModelId ? styles.modelOptionActive : ''}`}
+                          className={styles.composerDropdownItem}
                           onClick={() => void handleSwitchModel(m.id)}
                           disabled={switchingModelId !== null}
                         >
-                          <span className={styles.modelOptionName}>{m.displayName}</span>
-                          {switchingModelId === m.id && (
-                            <span className={styles.modelOptionLoading}>…</span>
-                          )}
+                          <span className={styles.composerDropdownItemLabel}>{m.displayName}</span>
+                          <span className={styles.composerDropdownItemCheck}>
+                            {switchingModelId === m.id ? (
+                              <IconLoader size={14} className={styles.composerDropdownSpinner} />
+                            ) : m.id === activeModelId ? (
+                              <IconCheck size={14} />
+                            ) : null}
+                          </span>
                         </button>
                       ))
                     )}
+                    <div className={styles.composerDropdownDivider} />
                     <button
                       type="button"
-                      className={styles.modelDropdownManage}
+                      className={`${styles.composerDropdownItem} ${styles.composerDropdownFooter}`}
                       onClick={() => {
                         setModelDropdownOpen(false)
                         setModelManagerOpen(true)
                       }}
                     >
-                      {t.manageModels}
+                      <span className={styles.composerDropdownItemIcon}>
+                        <IconSettings size={14} />
+                      </span>
+                      <span className={styles.composerDropdownItemLabel}>{t.manageModels}</span>
                     </button>
                   </div>,
                   document.body
@@ -944,33 +861,39 @@ export function AiPanel(): JSX.Element {
             <div className={styles.composerRight}>
               {isModelLoaded && (
                 <ContextUsageRing
+                  className={styles.composerAction}
                   used={contextUsage.used}
                   total={contextUsage.total}
                   title={t.contextUsageTooltip(contextUsage.pct, contextUsage.used, contextUsage.total)}
                 />
               )}
               <button
-                className={`${styles.iconAction} ${styles.attachBtn}`}
+                className={styles.composerAction}
                 type="button"
                 onClick={() => void pickImages()}
                 disabled={!isModelLoaded || isStreaming}
                 title={t.attachFile}
               >
-                <IconAttach />
+                <IconAttach size={15} strokeWidth={1.5} />
               </button>
               {isStreaming ? (
-                <button className={`${styles.sendCircle} ${styles.sendCircleActive}`} type="button" onClick={stop} title={t.stop}>
-                  <IconStop />
+                <button
+                  className={`${styles.composerAction} ${styles.composerActionSend} ${styles.composerActionSendActive}`}
+                  type="button"
+                  onClick={stop}
+                  title={t.stop}
+                >
+                  <IconStop size={11} />
                 </button>
               ) : (
                 <button
-                  className={`${styles.sendCircle} ${canSend ? styles.sendCircleActive : ''}`}
+                  className={`${styles.composerAction} ${styles.composerActionSend} ${canSend ? styles.composerActionSendActive : ''}`}
                   type="button"
                   onClick={() => void handleSend()}
                   disabled={!canSend}
                   title={t.send}
                 >
-                  <IconSend />
+                  <IconSend size={13} strokeWidth={2.25} />
                 </button>
               )}
             </div>

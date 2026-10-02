@@ -356,7 +356,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 8px 8px;
+  padding: 2px 8px 8px;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-composer);
+  letter-spacing: -0.01em;
 }
 
 .composerLeft {
@@ -370,27 +373,58 @@
 .composerRight {
   display: flex;
   align-items: center;
-  gap: 2px;
+  column-gap: 6px;
   flex-shrink: 0;
+}
+
+.composerAction {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #888888;
+  transition: color 0.12s, background 0.12s, opacity 0.12s;
+}
+
+.composerAction:hover:not(:disabled) {
+  color: var(--fg-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.composerAction:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .modePill {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 22px;
-  padding: 0 7px;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-hover);
-  color: var(--fg-secondary);
-  font-size: 11px;
+  border: 1px solid var(--composer-pill-border);
+  background: var(--composer-pill-bg);
+  color: var(--composer-pill-fg);
+  font-size: var(--font-size-composer);
+  font-weight: 400;
+  line-height: 1;
   flex-shrink: 0;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .modePill:not(:disabled):hover {
-  filter: brightness(1.08);
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--fg-primary);
 }
 
 .modePill:disabled {
@@ -398,33 +432,21 @@
   cursor: default;
 }
 
-.modePillAgent {
-  border-color: var(--accent);
-  color: #6db5ff;
-  background: rgba(0, 122, 204, 0.15);
-}
-
-.modePillPlan {
-  border-color: var(--accent-orange);
-  color: #ffb366;
-  background: rgba(232, 117, 10, 0.15);
-}
-
-.modePillAsk {
-  border-color: var(--accent-green);
-  color: #6ee89a;
-  background: rgba(61, 202, 125, 0.15);
-}
-
+.modePillAgent,
+.modePillPlan,
+.modePillAsk,
 .modePillChat {
-  border-color: var(--border-light);
-  color: var(--fg-secondary);
-  background: var(--bg-hover);
+  border-color: var(--composer-pill-border);
+  color: var(--composer-pill-fg);
+  background: var(--composer-pill-bg);
 }
 
 .modeIcon {
-  font-size: 10px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.92;
 }
 
 .modeDropdownWrap {
@@ -432,52 +454,107 @@
   flex-shrink: 0;
 }
 
-.modeDropdownPortal {
+.composerDropdown {
   position: fixed;
-  min-width: 140px;
+  min-width: 168px;
   background: var(--bg-dropdown);
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   z-index: 10000;
   padding: 4px;
 }
 
-.modeOption {
+.modelDropdown {
+  min-width: 220px;
+  max-width: 300px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.composerDropdownEmpty {
+  padding: 10px 12px;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+
+.composerDropdownItem {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   text-align: left;
-  font-size: var(--font-size-sm);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--fg-primary);
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
 }
 
-.modeOption:hover {
-  background: var(--bg-hover);
+.composerDropdownItem:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.modeOptionActive {
-  background: var(--bg-selected);
+.composerDropdownItem:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-.modeOptionDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.composerDropdownItemIcon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: var(--fg-secondary);
 }
 
-.modeOptionDotAgent { background: var(--accent); }
-.modeOptionDotPlan { background: var(--accent-orange); }
-.modeOptionDotAsk { background: var(--accent-green); }
-.modeOptionDotChat { background: var(--fg-muted); }
-
-.modeOptionLabel {
+.composerDropdownItemLabel {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composerDropdownItemCheck {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--fg-primary);
+}
+
+.composerDropdownSpinner {
+  animation: composerDropdownSpin 0.8s linear infinite;
+}
+
+@keyframes composerDropdownSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.composerDropdownDivider {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.composerDropdownFooter {
+  color: var(--fg-secondary);
+}
+
+.composerDropdownFooter:hover {
+  color: var(--fg-primary);
+}
+
+.composerDropdownFooter .composerDropdownItemIcon {
+  color: inherit;
 }
 
 .modelDropdownWrap {
@@ -489,19 +566,20 @@
 .modelSelector {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 22px;
+  gap: 2px;
+  height: 24px;
   padding: 0 4px;
   max-width: 100%;
-  color: var(--fg-secondary);
-  font-size: 11px;
+  color: var(--composer-model-fg);
+  font-size: var(--font-size-composer);
+  font-weight: 400;
   border-radius: 4px;
-  transition: color 0.1s, background 0.1s;
+  transition: color 0.12s, background 0.12s;
 }
 
 .modelSelector:not(:disabled):hover {
-  color: var(--fg-primary);
-  background: var(--bg-hover);
+  color: #d4b896;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .modelSelectorText {
@@ -510,126 +588,24 @@
   white-space: nowrap;
 }
 
-.modelDropdownPortal {
-  position: fixed;
-  min-width: 200px;
-  max-width: 280px;
-  max-height: 240px;
-  overflow-y: auto;
-  background: var(--bg-dropdown);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  z-index: 10000;
-  padding: 4px;
-}
-
-.modelDropdownEmpty {
-  padding: 10px 12px;
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-}
-
-.modelOption {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  text-align: left;
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
-  transition: background 0.1s;
-}
-
-.modelOption:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-.modelOptionActive {
-  color: var(--accent);
-}
-
-.modelOptionName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.modelOptionLoading {
-  color: var(--fg-muted);
-  flex-shrink: 0;
-}
-
-.modelDropdownManage {
-  width: 100%;
-  margin-top: 4px;
-  padding: 7px 10px;
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 6px 6px;
-  text-align: left;
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  transition: color 0.1s, background 0.1s;
-}
-
-.modelDropdownManage:hover {
-  color: var(--fg-primary);
-  background: var(--bg-hover);
-}
-
-.iconAction {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 6px;
-  color: var(--fg-secondary);
-  transition: color 0.1s, background 0.1s;
-}
-
-.iconAction:hover:not(:disabled) {
-  color: var(--fg-primary);
-  background: var(--bg-hover);
-}
-
-.iconAction:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.attachBtn {
-  color: var(--fg-secondary);
-}
-
-.sendCircle {
-  width: 28px;
-  height: 28px;
+.composerActionSend {
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: var(--border-light);
-  color: var(--fg-muted);
-  transition: background 0.15s, color 0.15s;
+  background: var(--composer-send-bg);
+  color: var(--composer-send-fg);
 }
 
-.sendCircleActive {
-  background: var(--fg-primary);
-  color: var(--bg-window);
+.composerActionSend:hover:not(:disabled) {
+  background: var(--composer-send-bg);
+  color: var(--composer-send-fg);
 }
 
-.sendCircleActive:hover:not(:disabled) {
-  opacity: 0.9;
+.composerActionSendActive {
+  background: var(--composer-send-active-bg);
+  color: var(--composer-send-active-fg);
 }
 
-.sendCircle:disabled {
-  cursor: not-allowed;
+.composerActionSendActive:hover:not(:disabled) {
+  opacity: 0.88;
 }
 
 .imagePreviews {

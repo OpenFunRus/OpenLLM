@@ -18,7 +18,8 @@
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  background: var(--ai-user-bg);
+  background: var(--ai-bubble-bg);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 12px 14px;
   white-space: pre-wrap;

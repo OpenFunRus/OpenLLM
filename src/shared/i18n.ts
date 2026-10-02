@@ -7,6 +7,7 @@ export const ru = {
   commandPaletteTitle: 'Командная палитра (Ctrl+Shift+P)',
   minimize: 'Свернуть',
   maximize: 'Развернуть',
+  restoreWindow: 'Восстановить',
   close: 'Закрыть',
 
   // Welcome

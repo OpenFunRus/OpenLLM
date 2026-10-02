@@ -14,6 +14,8 @@ declare global {
       minimize: () => void
       maximize: () => void
       close: () => void
+      isMaximized: () => Promise<boolean>
+      onWindowMaximizeChanged: (cb: (maximized: boolean) => void) => () => void
 
       getFileTree: (dirPath: string) => Promise<FileNode[]>
       readFile: (filePath: string) => Promise<string>

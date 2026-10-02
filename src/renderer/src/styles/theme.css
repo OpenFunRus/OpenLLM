@@ -36,7 +36,8 @@
   --status-bar-accent-bg: #007ACC;
   --status-bar-accent-fg: #ffffff;
 
-  --ai-user-bg:       #2a2a2a;
+  --ai-bubble-bg:     rgba(120, 120, 120, 0.06);
+  --ai-user-bg:       var(--ai-bubble-bg);
   --ai-assistant-bg:  transparent;
   --ai-accent:        #007ACC;
 
@@ -54,10 +55,21 @@
   --resize-handle-hover: #007ACC;
 
   /* Typography */
-  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
   --font-mono:   'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
+  --font-size-composer: 12px;
+
+  /* Composer controls (Cursor-like) */
+  --composer-pill-bg:       rgba(255, 255, 255, 0.06);
+  --composer-pill-border:   rgba(255, 255, 255, 0.1);
+  --composer-pill-fg:       #cccccc;
+  --composer-model-fg:      #c4a882;
+  --composer-send-bg:       #3a3a3a;
+  --composer-send-fg:       #666666;
+  --composer-send-active-bg:#e8e8e8;
+  --composer-send-active-fg:#1a1a1a;
   --font-size-md: 15px;
   --font-size-lg: 16px;
 
@@ -109,7 +121,8 @@
   --status-bar-accent-bg: #007ACC;
   --status-bar-accent-fg: #ffffff;
 
-  --ai-user-bg:       #e8e8e8;
+  --ai-bubble-bg:     rgba(0, 0, 0, 0.04);
+  --ai-user-bg:       var(--ai-bubble-bg);
   --ai-assistant-bg:  transparent;
 
   --scrollbar-thumb:        rgba(0, 122, 204, 0.35);

@@ -1,4 +1,4 @@
-import { renderMessageContent } from '../AiPanel/messageContent'
+import { MarkdownRenderer } from '../Markdown/MarkdownRenderer'
 import styles from './MarkdownPreview.module.css'
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 export function MarkdownPreview({ content }: Props): JSX.Element {
   return (
     <div className={styles.preview}>
-      {renderMessageContent(content, false, () => {}, () => {}, {}, {}, undefined)}
+      <MarkdownRenderer content={content} />
     </div>
   )
 }

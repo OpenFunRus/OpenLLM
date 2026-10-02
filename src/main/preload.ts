@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.send('win:minimize'),
   maximize: () => ipcRenderer.send('win:maximize'),
   close: () => ipcRenderer.send('win:close'),
+  isMaximized: (): Promise<boolean> => ipcRenderer.invoke('win:isMaximized'),
+  onWindowMaximizeChanged: (cb: (maximized: boolean) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, maximized: boolean) => cb(maximized)
+    ipcRenderer.on('win:maximize-changed', listener)
+    return () => ipcRenderer.removeListener('win:maximize-changed', listener)
+  },
 
   // ── File system ─────────────────────────────────────────────────────
   getFileTree: (dirPath: string): Promise<FileNode[]> =>
