@@ -77,6 +77,7 @@ export function WelcomeScreen(): JSX.Element {
               <li>{t.welcomeExplorerMouse3}</li>
               <li>{t.welcomeExplorerMouse4}</li>
               <li>{t.welcomeExplorerMouse5}</li>
+              <li>{t.welcomeExplorerMouse6}</li>
             </ul>
 
             <h3 className={styles.subTitle}>{t.welcomeExplorerToolbarTitle}</h3>
@@ -103,6 +104,19 @@ export function WelcomeScreen(): JSX.Element {
           </section>
 
           <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>{t.welcomeEditorTabsTitle}</h2>
+            <p className={styles.sectionText}>{t.welcomeEditorTabsIntro}</p>
+            <DefList
+              items={[
+                { term: t.welcomeEditorTabsFile, desc: t.welcomeEditorTabsFileDesc },
+                { term: t.welcomeEditorTabsBrowser, desc: t.welcomeEditorTabsBrowserDesc },
+                { term: t.welcomeEditorTabsConsole, desc: t.welcomeEditorTabsConsoleDesc },
+                { term: t.welcomeEditorTabsPowerShell, desc: t.welcomeEditorTabsPowerShellDesc },
+              ]}
+            />
+          </section>
+
+          <section className={styles.section}>
             <h2 className={styles.sectionTitle}>{t.welcomeAiTitle}</h2>
             <p className={styles.sectionText}>{t.welcomeAiIntro}</p>
             <DefList
@@ -113,6 +127,20 @@ export function WelcomeScreen(): JSX.Element {
               ]}
             />
             <p className={styles.sectionText}>{t.welcomeAiHistory}</p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>{t.welcomeComposerTitle}</h2>
+            <p className={styles.sectionText}>{t.welcomeComposerIntro}</p>
+            <DefList
+              items={[
+                { term: t.welcomeComposerContext, desc: t.welcomeComposerContextDesc },
+                { term: t.welcomeComposerFiles, desc: t.welcomeComposerFilesDesc },
+                { term: t.welcomeComposerTodos, desc: t.welcomeComposerTodosDesc },
+                { term: t.welcomeComposerStop, desc: t.welcomeComposerStopDesc },
+                { term: t.welcomeComposerPrompt, desc: t.welcomeComposerPromptDesc },
+              ]}
+            />
           </section>
 
           <section className={styles.section}>
@@ -146,7 +174,9 @@ export function WelcomeScreen(): JSX.Element {
                 { term: t.welcomeAgentMaxSteps, desc: t.welcomeAgentMaxStepsDesc },
                 { term: t.welcomeAgentMaxWall, desc: t.welcomeAgentMaxWallDesc },
                 { term: t.welcomeAgentAutoContinue, desc: t.welcomeAgentAutoContinueDesc },
-                { term: t.welcomeAgentContextStop, desc: t.welcomeAgentContextStopDesc },
+                { term: t.welcomeAgentSummarize, desc: t.welcomeAgentSummarizeDesc },
+                { term: t.welcomeAgentSummarizeMode, desc: t.welcomeAgentSummarizeModeDesc },
+                { term: t.welcomeAgentSummarizeModel, desc: t.welcomeAgentSummarizeModelDesc },
                 { term: t.welcomeAgentTavily, desc: t.welcomeAgentTavilyDesc },
               ]}
             />

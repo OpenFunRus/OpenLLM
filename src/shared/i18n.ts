@@ -33,13 +33,13 @@ export const ru = {
     'Дерево файлов открытого проекта. Создание, переименование, копирование и удаление — см. раздел «Обозреватель» ниже.',
   welcomeZoneEditor: 'Редактор',
   welcomeZoneEditorDesc:
-    'Центральная область с вкладками. Двойной клик по файлу в обозревателе или Enter на выделенном файле открывает его здесь. Поддерживаются код и markdown.',
+    'Центральная область с постоянной полосой вкладок. Файлы, браузер, cmd и PowerShell — отдельные вкладки. Меню «⋯» справа от вкладок открывает встроенный браузер или терминал.',
   welcomeZoneAi: 'ИИ-чат',
   welcomeZoneAiDesc:
-    'Правая панель: диалог с моделью, выбор режима (Agent / Plan / Chat), история чатов. Сессии сохраняются в .openllm/chat-sessions.json внутри проекта.',
+    'Правая панель: режимы Agent / Plan / Chat, панель «Задачи, файлы и контекст», кнопка ■ Стоп. Сессии — в .openllm/chat-sessions.json проекта.',
   welcomeZoneTerminal: 'Терминал',
   welcomeZoneTerminalDesc:
-    'Встроенный shell в корне проекта. Открывается кнопкой ⌨ в строке состояния. Рабочая директория — папка проекта.',
+    'Нижняя панель (⌨ в строке состояния) и отдельные вкладки cmd/PowerShell в редакторе. Каждая вкладка — свой shell-сессия в корне проекта.',
   welcomeZoneStatus: 'Строка состояния',
   welcomeZoneStatusDesc:
     'Внизу: активная модель (клик — смена), позиция курсора, переключатели панели ИИ, терминала и темы.',
@@ -52,6 +52,8 @@ export const ru = {
   welcomeExplorerMouse3: 'Двойной клик по папке — развернуть или свернуть.',
   welcomeExplorerMouse4: 'Стрелка у папки — развернуть/свернуть без открытия.',
   welcomeExplorerMouse5: 'Правый клик — контекстное меню (создать, копировать, переименовать, удалить).',
+  welcomeExplorerMouse6:
+    'Перетаскивание — переместить файл или папку внутри дерева (на другую папку или в корень).',
   welcomeExplorerToolbarTitle: 'Панель над деревом',
   welcomeExplorerToolbar1: 'Новый файл — создать в выбранной папке или в корне.',
   welcomeExplorerToolbar2: 'Новая папка — то же, но каталог.',
@@ -87,6 +89,36 @@ export const ru = {
   welcomeAiModeChatDesc:
     'Только ответы по коду и проекту, без записи файлов. Модель может читать проект и задавать уточняющие вопросы.',
   welcomeAiHistory: 'История чатов хранится отдельно для каждого проекта. Новый чат — кнопка «+» в заголовке панели.',
+  welcomeEditorTabsTitle: 'Вкладки редактора',
+  welcomeEditorTabsIntro:
+    'Полоса вкладок видна всегда — даже когда открыт только стартовый экран. Справа от вкладок — меню «⋯».',
+  welcomeEditorTabsFile: 'Файл',
+  welcomeEditorTabsFileDesc:
+    'Двойной клик в обозревателе или Enter на выделенном файле. Markdown — переключение raw / preview.',
+  welcomeEditorTabsBrowser: 'Браузер',
+  welcomeEditorTabsBrowserDesc:
+    'Встроенная webview-вкладка с адресной строкой. Несколько браузеров — независимые сессии (cookies и история не смешиваются).',
+  welcomeEditorTabsConsole: 'Консоль (cmd)',
+  welcomeEditorTabsConsoleDesc: 'Встроенный cmd.exe в корне проекта. Каждая вкладка — отдельная PTY-сессия.',
+  welcomeEditorTabsPowerShell: 'PowerShell',
+  welcomeEditorTabsPowerShellDesc: 'То же, что консоль, но powershell.exe — удобно для скриптов Windows.',
+  welcomeComposerTitle: 'Панель контекста и управление агентом',
+  welcomeComposerIntro:
+    'Над полем ввода — сворачиваемая панель «Задачи, файлы и контекст». Во время агента показывает прогресс, изменённые файлы и заполнение контекста модели.',
+  welcomeComposerContext: 'Контекст',
+  welcomeComposerContextDesc:
+    'Полоска использования контекста (токены / лимит модели). При ~90% агент может сжать середину истории через LLM — см. настройки Agent → Суммаризация.',
+  welcomeComposerFiles: 'Файлы',
+  welcomeComposerFilesDesc:
+    'Список файлов, затронутых в текущем ходе. Клик открывает файл и прокручивает к месту правки; +/− — суммарный diff за весь ход.',
+  welcomeComposerTodos: 'Задачи',
+  welcomeComposerTodosDesc: 'TodoWrite от агента: pending, in progress, done. Удобно следить за длинными задачами.',
+  welcomeComposerStop: '■ Стоп',
+  welcomeComposerStopDesc:
+    'Прерывает стрим LLM, выполняющиеся tools и фоновые shell-процессы агента. Суммаризация тоже отменяется.',
+  welcomeComposerPrompt: 'Закреплённый промпт',
+  welcomeComposerPromptDesc:
+    'При прокрутке чата ваш последний запрос остаётся видимым над полем ввода — удобно сверяться с задачей.',
   welcomeModelsTitle: 'Модели (нейросети)',
   welcomeModelsDesc:
     'OpenLLM подключается к любому OpenAI-compatible API (OpenAI, локальный llama.cpp, vLLM и др.). Модели добавляются в менеджере — иконка монитора на левой панели или поиск команд вверху окна.',
@@ -123,9 +155,15 @@ export const ru = {
   welcomeAgentAutoContinue: 'Автопродолжение batch',
   welcomeAgentAutoContinueDesc:
     'При soft-лимите (шаги или время) сразу запускать следующий batch без кнопки «Продолжить».',
-  welcomeAgentContextStop: 'Пауза batch при контексте (%)',
-  welcomeAgentContextStopDesc:
-    'При ~90% контекста середина API-истории сжимается через LLM (UI чата не меняется). Настройки — Settings → Agent → Суммаризация.',
+  welcomeAgentSummarize: 'Суммаризация контекста',
+  welcomeAgentSummarizeDesc:
+    'При достижении порога (по умолчанию 90% окна модели) середина API-истории сжимается отдельным LLM-вызовом. Чат в UI не переписывается — меняется только payload к API.',
+  welcomeAgentSummarizeMode: 'После суммаризации',
+  welcomeAgentSummarizeModeDesc:
+    '«Продолжить batch» — агент идёт дальше; «Пауза batch» — остановка, если после сжатия контекст всё ещё выше порога.',
+  welcomeAgentSummarizeModel: 'Модель для summary',
+  welcomeAgentSummarizeModelDesc:
+    'Можно указать более дешёвую модель для сжатия истории; по умолчанию — активная модель чата.',
   welcomeAgentTavily: 'Tavily API key (WebSearch)',
   welcomeAgentTavilyDesc:
     'Ключ для поиска в интернете через Tavily. Без ключа — keyless mode; с ключом — до 1000 запросов/мес бесплатно на tavily.com.',
@@ -140,7 +178,8 @@ export const ru = {
     '{ "mcpServers": { "имя": { "command": "…", "args": [], "env": {} } } }. command — исполняемый файл или npx; args — аргuments; env — переменные окружения для процесса MCP.',
   welcomeMcpReload: 'После сохранения конфигурации перезапустите агентский запрос — новые серверы подхватятся при следующем обращении к инструментам.',
   welcomeMiscTitle: 'Терминал, тема и команды',
-  welcomeMiscTerminal: 'Терминал открывается кнопкой ⌨ в строке состояния. Shell стартует в корне открытого проекта.',
+  welcomeMiscTerminal:
+    'Нижний терминал — кнопка ⌨ в строке состояния. Дополнительно: cmd и PowerShell как вкладки редактора (меню «⋯» на полосе вкладок).',
   welcomeMiscTheme: 'Кнопка ◑ справа в строке состояния переключает тёмную и светлую тему.',
   welcomeMiscPalette: 'Поле поиска вверху окна — командная палитра: быстрый переход к файлам, переключение панелей, менеджер моделей.',
   welcomeMiscProject: 'Сменить проект: «Открыть проект» на стартовом экране (при запуске или через меню) — там же список недавних папок.',

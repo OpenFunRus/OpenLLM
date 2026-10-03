@@ -1,6 +1,6 @@
 # OpenLLM
 
-Локальная IDE в стиле Cursor: редактор, терминал, Git и AI-агент поверх **OpenAI-compatible API** (локальный llama.cpp server, vLLM, LM Studio, OpenRouter и т.д.).
+Локальная IDE в стиле Cursor: редактор, терминал, встроенный браузер и AI-агент поверх **OpenAI-compatible API** (локальный llama.cpp server, vLLM, LM Studio, OpenRouter и т.д.).
 
 ![Electron](https://img.shields.io/badge/Electron-35-blue) ![React](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 
@@ -22,15 +22,13 @@ OpenLLM — попытка собрать «свой Cursor» на своей м
 
 ### Редактор и workspace
 
-- **Monaco Editor** — подсветка синтаксиса, вкладки, diff в чате
+- **Monaco Editor** — подсветка синтаксиса, diff в чате
+- **Полоса вкладок** — всегда видна; файлы, браузер, cmd и PowerShell как отдельные вкладки
+- **Встроенный браузер** — webview с адресной строкой, независимые сессии на вкладку
+- **Встроенные терминалы** — cmd и PowerShell во вкладках редактора + нижняя панель терминала
 - **Markdown preview** — переключение raw / GitHub-style для `.md`
-- **Explorer** — дерево файлов, создание, переименование, удаление
-- **Терминал** — PTY (node-pty + xterm.js), ресайз вместе с панелями
-
-### Git и GitHub
-
-- **Source Control** — stage, commit, push, pull, ветки
-- **GitHub panel** — репозитории, PR через PAT
+- **Explorer** — дерево файлов, drag-and-drop внутри дерева, создание, переименование, удаление
+- **Git-контекст** — статус репозитория подмешивается в промпт агента (UI Source Control пока нет)
 
 ### AI-режимы
 
@@ -38,17 +36,18 @@ OpenLLM — попытка собрать «свой Cursor» на своей м
 |-------|------------|
 | **Agent** | Автономный цикл: LLM → tools → результат в контекст |
 | **Plan** | План в `.openllm/plans/`, кнопка «Реализовать» → Agent |
-| **Ask** | Только чтение (grep, read), без правок файлов |
-| **Chat** | Обычный чат + markdown-блоки с файлами |
+| **Chat** | Обычный чат + markdown-блоки с файлами, без записи на диск |
 
 ### Agent (основной режим)
 
 - Native **tool_calls** (OpenAI API) + fallback на XML tool calls
 - Стриминг: reasoning, prose, tool bubbles, diff по файлам
+- **Панель контекста** — задачи (TodoWrite), изменённые файлы с суммарным diff, полоска заполнения контекста
 - **Shell** — команды в фоне, вывод в bubble и терминал
 - **Rollback / Edit** — откат к сообщению с восстановлением файлов и пустых папок
-- **Stop** — прерывание LLM, tools и shell-процессов
+- **Stop (■)** — прерывание LLM, tools, shell и суммаризации контекста
 - **Batch + auto-continue** — длинные задачи без обрыва на 30 шагах (как в Cursor)
+- **LLM-суммаризация контекста** — при ~90% окна модели сжимается middle-сегмент API-истории (UI чата не меняется)
 - **SwitchMode / AskQuestion** — модалки подтверждения от агента
 - **MCP** — конфиг `mcp.json` (user / workspace scope)
 
@@ -56,7 +55,7 @@ OpenLLM — попытка собрать «свой Cursor» на своей м
 
 - 50 шагов за batch, auto-continue включён
 - 60 мин на batch, safety cap 500 шагов
-- Пауза batch при ~92% контекста модели
+- Суммаризация контекста включена, порог 90%, режим «продолжить batch»
 
 ---
 
@@ -85,6 +84,8 @@ npm run dev
 2. Загрузите модель (**Load model**)
 3. **File → Open Folder** — откройте workspace
 4. AI panel → режим **Agent** → например: «Создай hello.txt с текстом Hi»
+
+На стартовом экране редактора — **Руководство** с описанием интерфейса, вкладок, чата и настроек.
 
 Пример локального сервера (llama.cpp):
 
@@ -148,8 +149,7 @@ docs/
 | Редактор | Monaco Editor |
 | LLM | OpenAI-compatible HTTP API (streaming, tool_calls) |
 | Терминал | node-pty + xterm.js |
-| Git | simple-git |
-| GitHub | @octokit/rest |
+| Git | simple-git (контекст для агента) |
 | State | Zustand |
 | MCP | @modelcontextprotocol/sdk |
 | Пакет | electron-builder |
