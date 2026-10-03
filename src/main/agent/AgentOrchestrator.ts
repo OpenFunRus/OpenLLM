@@ -342,7 +342,13 @@ export class AgentOrchestrator {
         summarized: false,
       }
       try {
-        result = await trySummarizeAgentHistory(messages, promptTokens)
+        result = await trySummarizeAgentHistory(messages, promptTokens, callbacks.isAborted)
+      } catch (err) {
+        if (err instanceof AgentAbortedError) {
+          finalText = err.message
+          return true
+        }
+        throw err
       } finally {
         callbacks.onAgentPhase?.(null)
         agentRunLog(`summarize end summarized=${result.summarized}`)

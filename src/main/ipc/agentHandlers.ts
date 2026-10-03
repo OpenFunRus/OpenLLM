@@ -178,7 +178,7 @@ export function registerAgentHandlers(): void {
           },
         })
 
-        if (!aborted && !event.sender.isDestroyed()) {
+        if (!event.sender.isDestroyed()) {
           event.sender.send(`agent:done:${runId}`, result)
         }
       } catch (err: unknown) {

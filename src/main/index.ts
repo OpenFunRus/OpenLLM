@@ -72,7 +72,8 @@ setImmediate(() => {
         preload: preloadPath,
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: false
+        sandbox: false,
+        webviewTag: true,
       }
     })
 

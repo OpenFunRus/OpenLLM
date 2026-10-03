@@ -472,6 +472,18 @@ export const ru = {
 
   // Tab bar
   closeTab: 'Закрыть',
+  editorTabMenuTitle: 'Открыть вкладку',
+  editorTabMenuOpenBrowser: 'Открыть браузер',
+  editorTabMenuOpenConsole: 'Открыть консоль',
+  editorTabMenuOpenPowerShell: 'Открыть PowerShell',
+  editorTabBrowser: 'Браузер',
+  editorTabConsole: 'Консоль',
+  editorTabPowerShell: 'PowerShell',
+  browserBack: 'Назад',
+  browserForward: 'Вперёд',
+  browserRefresh: 'Обновить',
+  browserNavigate: 'Перейти',
+  browserUrlPlaceholder: 'Введите URL…',
 
   // Main process
   noModelLoadedError: 'Модель не загружена',

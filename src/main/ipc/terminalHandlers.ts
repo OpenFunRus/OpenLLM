@@ -4,12 +4,12 @@ import { terminalService } from '../services/TerminalService'
 export function registerTerminalHandlers(): void {
   const { ipcMain } = require('electron') as { ipcMain: IpcMain }
 
-  ipcMain.handle('term:create', async (event, id: string, cwd: string) => {
+  ipcMain.handle('term:create', async (event, id: string, cwd: string, shell?: string) => {
     return terminalService.create(id, cwd, (data) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send(`term:data:${id}`, data)
       }
-    })
+    }, shell)
   })
 
   ipcMain.handle('term:write', (_e, id: string, data: string) => terminalService.write(id, data))

@@ -614,7 +614,11 @@ async function launchAgentSessionRun(
       handleError
     )
 
-  setStop(await startBatch(continueRun))
+  const cancel = await startBatch(continueRun)
+  setStop(() => {
+    cancel()
+    finishRun()
+  })
 }
 
 function finalizeStreamingInSessions(

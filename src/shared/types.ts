@@ -35,12 +35,43 @@ export interface RecentWorkspaceInfo extends WorkspaceInfo {
 
 // ── Editor ────────────────────────────────────────────────────────────────────
 
-export interface EditorTab {
+export type EditorTabKind = 'file' | 'browser' | 'console' | 'powershell'
+
+export interface EditorTabBase {
   id: string
-  filePath: string
-  fileName: string
+  kind: EditorTabKind
+  name: string
+}
+
+export interface FileEditorTab extends EditorTabBase {
+  kind: 'file'
+  path: string
+  content: string
   language: string
   isDirty: boolean
+}
+
+export interface BrowserEditorTab extends EditorTabBase {
+  kind: 'browser'
+  url: string
+  /** Isolated Electron session — one per browser tab. */
+  partition: string
+}
+
+export interface ConsoleEditorTab extends EditorTabBase {
+  kind: 'console'
+  termId: string
+}
+
+export interface PowerShellEditorTab extends EditorTabBase {
+  kind: 'powershell'
+  termId: string
+}
+
+export type EditorTab = FileEditorTab | BrowserEditorTab | ConsoleEditorTab | PowerShellEditorTab
+
+export function isFileEditorTab(tab: EditorTab): tab is FileEditorTab {
+  return tab.kind === 'file'
 }
 
 // ── API Models ────────────────────────────────────────────────────────────────

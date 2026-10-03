@@ -7,6 +7,7 @@ import {
   splitAgentHistoryForSummary,
   squeezeToolOutputsForSummary,
 } from '../../shared/agent/contextSummarizer'
+import { AgentAbortedError } from '../../shared/agent/errors'
 import { buildSummaryUserPrompt, SUMMARY_SYSTEM_PROMPT } from '../../shared/agent/summaryPrompts'
 import type { AppSettings } from '../../shared/types'
 import { contextKToTokens, MODEL_CONTEXT_DEFAULT_K } from '../../shared/modelConfig'
@@ -70,8 +71,12 @@ export function shouldSummarizeAgentHistory(
 
 export async function trySummarizeAgentHistory(
   messages: AgentChatMessage[],
-  promptTokens?: number
+  promptTokens?: number,
+  isAborted?: () => boolean,
 ): Promise<SummarizeContextResult> {
+  if (isAborted?.()) {
+    return { messages, summarized: false }
+  }
   if (!shouldSummarizeAgentHistory(messages, promptTokens)) {
     return { messages, summarized: false }
   }
@@ -96,7 +101,8 @@ export async function trySummarizeAgentHistory(
     const summaryMarkdown = await llmService.completeMessagesForSummary(
       SUMMARY_SYSTEM_PROMPT,
       userPrompt,
-      settings.agentSummarizeModelId
+      settings.agentSummarizeModelId,
+      isAborted,
     )
     const trimmed = summaryMarkdown.trim()
     if (!trimmed) return { messages, summarized: false }
@@ -105,6 +111,7 @@ export async function trySummarizeAgentHistory(
     const next = mergeHistoryAfterSummary(split.head, summaryMessage, split.tail)
     return { messages: next, summarized: true }
   } catch (err) {
+    if (err instanceof AgentAbortedError) throw err
     const msg = err instanceof Error ? err.message : String(err)
     agentRunLog(`summarize failed: ${msg}`)
     console.warn('[contextSummarizer] summary call failed:', err)

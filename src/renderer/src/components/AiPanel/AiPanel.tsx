@@ -14,6 +14,7 @@ import { useChatAutoScroll } from './useChatAutoScroll'
 import { usePromptHeader } from './usePromptHeader'
 import { t } from '../../../../shared/i18n'
 import type { ApiModelConfig, ImageAttachment } from '../../../../shared/types'
+import { isFileEditorTab } from '../../../../shared/types'
 import { isMediaAttachmentPath, OPENLLM_FILE_DRAG_MIME } from '../../../../shared/attachmentUtils'
 import styles from './AiPanel.module.css'
 import { ImageLightbox } from './ImageLightbox'
@@ -524,8 +525,8 @@ export function AiPanel(): JSX.Element {
 
   const buildUserContext = useCallback((): AgentUserContext => ({
     workspacePath: workspace?.path ?? null,
-    openFiles: tabs.map((tab) => ({
-      path: (tab as { path?: string; filePath?: string }).path ?? tab.filePath,
+    openFiles: tabs.filter(isFileEditorTab).map((tab) => ({
+      path: tab.path,
       isActive: tab.id === activeTabId,
       cursorLine: tab.id === activeTabId ? cursorLine : undefined,
     })),
@@ -654,10 +655,10 @@ export function AiPanel(): JSX.Element {
 
     const userContext: AgentUserContext = {
       workspacePath: workspace?.path ?? null,
-      openFiles: tabs.map((tab) => ({
+      openFiles: tabs.filter(isFileEditorTab).map((tab) => ({
         path: tab.path,
         isActive: tab.id === activeTabId,
-        cursorLine: tab.id === activeTabId ? cursorLine : undefined
+        cursorLine: tab.id === activeTabId ? cursorLine : undefined,
       })),
       timezoneOffsetMinutes: -new Date().getTimezoneOffset()
     }

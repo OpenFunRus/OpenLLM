@@ -108,7 +108,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(`llm:token:${id}`, tokenHandler)
     ipcRenderer.on(`llm:done:${id}`, doneHandler)
     ipcRenderer.on(`llm:error:${id}`, errorHandler)
-    return () => { ipcRenderer.emit(`llm:abort:${id}`); cleanup() }
+    return () => { ipcRenderer.send(`llm:abort:${id}`); cleanup() }
   },
 
   // ── Model manager ────────────────────────────────────────────────────
@@ -136,8 +136,8 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('chat:loadSessions', workspacePath ?? null),
 
   // ── Terminal ─────────────────────────────────────────────────────────
-  termCreate: (id: string, cwd: string): Promise<{ cols: number; rows: number }> =>
-    ipcRenderer.invoke('term:create', id, cwd),
+  termCreate: (id: string, cwd: string, shell?: string): Promise<{ cols: number; rows: number }> =>
+    ipcRenderer.invoke('term:create', id, cwd, shell),
   termWrite: (id: string, data: string): void => {
     ipcRenderer.invoke('term:write', id, data)
   },
@@ -306,6 +306,6 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(`agent:tool:${id}`, toolHandler)
     ipcRenderer.on(`agent:done:${id}`, doneHandler)
     ipcRenderer.on(`agent:error:${id}`, errorHandler)
-    return () => { ipcRenderer.emit(`agent:abort:${id}`); cleanup() }
+    return () => { ipcRenderer.send(`agent:abort:${id}`); cleanup() }
   },
 })

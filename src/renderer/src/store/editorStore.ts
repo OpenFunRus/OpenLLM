@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import type { EditorTab } from '@shared/types'
+import type { EditorTab, FileEditorTab } from '@shared/types'
+import { isFileEditorTab } from '@shared/types'
+import { t } from '@shared/i18n'
 
 interface EditorState {
   tabs: EditorTab[]
@@ -13,6 +15,10 @@ interface EditorState {
   markdownPreview: Record<string, boolean>
   openTab: (path: string, name: string) => Promise<void>
   openTabAtLine: (path: string, name: string, line?: number) => Promise<void>
+  openBrowserTab: () => void
+  openConsoleTab: (cwd: string) => void
+  openPowerShellTab: (cwd: string) => void
+  setBrowserTabUrl: (id: string, url: string) => void
   clearRevealLine: () => void
   closeTab: (id: string) => void
   closeTabByPath: (filePath: string) => void
@@ -38,6 +44,10 @@ function pathsEqual(a: string, b: string): boolean {
   return normalizeTabPath(a).toLowerCase() === normalizeTabPath(b).toLowerCase()
 }
 
+function nextTabId(): string {
+  return String(_nextId++)
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
   activeTabId: null,
@@ -55,7 +65,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   openTabAtLine: async (path: string, name: string, line?: number) => {
     const normalizedPath = normalizeTabPath(path)
     const { tabs } = get()
-    const existing = tabs.find((t) => pathsEqual(t.path, normalizedPath))
+    const existing = tabs.find(
+      (tab) => isFileEditorTab(tab) && pathsEqual(tab.path, normalizedPath),
+    )
     if (existing) {
       set((s) => ({
         activeTabId: existing.id,
@@ -68,11 +80,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     try {
       const content = await window.api.readFile(normalizedPath)
-      const id = String(_nextId++)
+      const id = nextTabId()
       const ext = name.split('.').pop() ?? ''
       const lang = extToLanguage(ext)
+      const tab: FileEditorTab = {
+        id,
+        kind: 'file',
+        name,
+        path: normalizedPath,
+        content,
+        language: lang,
+        isDirty: false,
+      }
       set((s) => ({
-        tabs: [...s.tabs, { id, path: normalizedPath, name, content, language: lang, isDirty: false }],
+        tabs: [...s.tabs, tab],
         activeTabId: id,
         revealLine: line ?? null,
         revealTabId: line ? id : null,
@@ -83,9 +104,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  openBrowserTab: () => {
+    const id = nextTabId()
+    set((s) => ({
+      tabs: [...s.tabs, {
+        id,
+        kind: 'browser',
+        name: t.editorTabBrowser,
+        url: 'about:blank',
+        partition: `openllm-browser-${id}`,
+      }],
+      activeTabId: id,
+    }))
+  },
+
+  openConsoleTab: (cwd: string) => {
+    const id = nextTabId()
+    const termId = `editor-console-${id}`
+    set((s) => ({
+      tabs: [...s.tabs, { id, kind: 'console', name: t.editorTabConsole, termId }],
+      activeTabId: id,
+    }))
+    void cwd
+  },
+
+  openPowerShellTab: (cwd: string) => {
+    const id = nextTabId()
+    const termId = `editor-powershell-${id}`
+    set((s) => ({
+      tabs: [...s.tabs, { id, kind: 'powershell', name: t.editorTabPowerShell, termId }],
+      activeTabId: id,
+    }))
+    void cwd
+  },
+
+  setBrowserTabUrl: (id: string, url: string) => {
+    set((s) => ({
+      tabs: s.tabs.map((tab) =>
+        tab.kind === 'browser' && tab.id === id ? { ...tab, url } : tab,
+      ),
+    }))
+  },
+
   clearRevealLine: () => set({ revealLine: null, revealTabId: null }),
 
   closeTab: (id: string) => {
+    const tab = get().tabs.find((t) => t.id === id)
+    if (tab?.kind === 'console' || tab?.kind === 'powershell') {
+      window.api.termKill(tab.termId)
+    }
+
     set((s) => {
       const idx = s.tabs.findIndex((t) => t.id === id)
       const next = s.tabs.filter((t) => t.id !== id)
@@ -100,21 +168,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   closeTabByPath: (filePath: string) => {
-    const tab = get().tabs.find((t) => t.path === filePath)
+    const tab = get().tabs.find(
+      (t) => isFileEditorTab(t) && t.path === filePath,
+    )
     if (tab) get().closeTab(tab.id)
   },
 
   renameTabPath: (oldPath: string, newPath: string, newName: string) => {
     set((s) => ({
       tabs: s.tabs.map((tab) =>
-        tab.path === oldPath
+        isFileEditorTab(tab) && tab.path === oldPath
           ? {
               ...tab,
               path: newPath,
               name: newName,
               language: extToLanguage(newName.split('.').pop() ?? ''),
             }
-          : tab
+          : tab,
       ),
     }))
   },
@@ -123,9 +193,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setTabContent: (id: string, content: string) => {
     set((s) => ({
-      tabs: s.tabs.map((t) => t.id === id ? { ...t, content, isDirty: true } : t)
+      tabs: s.tabs.map((tab) =>
+        isFileEditorTab(tab) && tab.id === id ? { ...tab, content, isDirty: true } : tab,
+      ),
     }))
-    // Auto-save after 1.5 s of inactivity
     const existing = _autoSaveTimers.get(id)
     if (existing) clearTimeout(existing)
     _autoSaveTimers.set(id, setTimeout(() => {
@@ -136,16 +207,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   markDirty: (id: string, dirty: boolean) => {
     set((s) => ({
-      tabs: s.tabs.map((t) => t.id === id ? { ...t, isDirty: dirty } : t)
+      tabs: s.tabs.map((tab) =>
+        isFileEditorTab(tab) && tab.id === id ? { ...tab, isDirty: dirty } : tab,
+      ),
     }))
   },
 
   saveTab: async (id: string) => {
     const tab = get().tabs.find((t) => t.id === id)
-    if (!tab || !tab.isDirty) return
+    if (!tab || !isFileEditorTab(tab) || !tab.isDirty) return
     await window.api.writeFile(tab.path, tab.content ?? '')
     set((s) => ({
-      tabs: s.tabs.map((t) => t.id === id ? { ...t, isDirty: false } : t)
+      tabs: s.tabs.map((t) =>
+        isFileEditorTab(t) && t.id === id ? { ...t, isDirty: false } : t,
+      ),
     }))
   },
 
@@ -174,7 +249,7 @@ function extToLanguage(ext: string): string {
     json: 'json', css: 'css', html: 'html', md: 'markdown',
     py: 'python', rs: 'rust', go: 'go', cs: 'csharp', cpp: 'cpp',
     c: 'c', java: 'java', sh: 'shell', bash: 'shell', yaml: 'yaml',
-    yml: 'yaml', toml: 'toml', xml: 'xml', sql: 'sql', txt: 'plaintext'
+    yml: 'yaml', toml: 'toml', xml: 'xml', sql: 'sql', txt: 'plaintext',
   }
   return map[ext.toLowerCase()] ?? 'plaintext'
 }

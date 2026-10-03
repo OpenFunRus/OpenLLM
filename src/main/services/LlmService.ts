@@ -419,7 +419,8 @@ class LlmService {
   async completeMessagesForSummary(
     system: string,
     user: string,
-    modelId?: string | null
+    modelId?: string | null,
+    isAborted?: () => boolean,
   ): Promise<string> {
     const config = modelId
       ? modelRegistryService.getById(modelId) ?? this.getConfig()
@@ -445,8 +446,12 @@ class LlmService {
     const SUMMARY_TIMEOUT_MS = 180_000
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), SUMMARY_TIMEOUT_MS)
+    const abortPoll = setInterval(() => {
+      if (isAborted?.()) controller.abort()
+    }, 100)
     let response: Response
     try {
+      if (isAborted?.()) throw new AgentAbortedError()
       response = await fetch(url, {
         method: 'POST',
         headers,
@@ -454,12 +459,15 @@ class LlmService {
         signal: controller.signal,
       })
     } catch (err) {
+      if (err instanceof AgentAbortedError) throw err
       if (err instanceof Error && err.name === 'AbortError') {
+        if (isAborted?.()) throw new AgentAbortedError()
         throw new Error(`Summary request timed out after ${SUMMARY_TIMEOUT_MS / 1000}s`)
       }
       throw err
     } finally {
       clearTimeout(timer)
+      clearInterval(abortPoll)
     }
 
     if (!response.ok) {

@@ -4,10 +4,10 @@ import type { editor } from 'monaco-editor'
 import { useEditorStore } from '../../store/editorStore'
 import { useAiStore } from '../../store/aiStore'
 import { useUiStore } from '../../store/uiStore'
-import type { EditorTab } from '../../../../shared/types'
+import type { FileEditorTab } from '../../../../shared/types'
 
 interface Props {
-  tab: EditorTab
+  tab: FileEditorTab
 }
 
 export function MonacoEditor({ tab }: Props): JSX.Element {

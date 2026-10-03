@@ -18,14 +18,15 @@ class TerminalService {
   async create(
     id: string,
     cwd: string,
-    onData: (data: string) => void
+    onData: (data: string) => void,
+    shellOverride?: string,
   ): Promise<{ cols: number; rows: number }> {
     await ensurePty()
     this.kill(id)
 
-    const shell = os.platform() === 'win32'
-      ? (process.env.COMSPEC ?? 'powershell.exe')
-      : (process.env.SHELL ?? '/bin/bash')
+    const shell = shellOverride ?? (os.platform() === 'win32'
+      ? (process.env.COMSPEC ?? 'cmd.exe')
+      : (process.env.SHELL ?? '/bin/bash'))
 
     const cols = 120
     const rows = 30

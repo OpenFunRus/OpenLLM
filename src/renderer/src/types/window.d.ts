@@ -64,7 +64,7 @@ declare global {
       saveChatSessions: (data: ChatSessionsData, workspacePath?: string | null) => Promise<void>
       loadChatSessions: (workspacePath?: string | null) => Promise<ChatSessionsData>
 
-      termCreate: (id: string, cwd: string) => Promise<{ cols: number; rows: number }>
+      termCreate: (id: string, cwd: string, shell?: string) => Promise<{ cols: number; rows: number }>
       termWrite: (id: string, data: string) => void
       termResize: (id: string, cols: number, rows: number) => void
       termKill: (id: string) => void

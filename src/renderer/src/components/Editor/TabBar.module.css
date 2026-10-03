@@ -4,9 +4,44 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: stretch;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tabsScroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  padding: 0 6px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-tab-bar);
+}
+
+.menuBtn {
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menuBtn:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
 }
 
 .tab {
