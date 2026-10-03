@@ -153,11 +153,14 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
   const streamFocus = resolveStreamFocus(isStreaming, liveThinking, liveProse, activeTools)
 
   const showLiveGroup = isStreaming && Boolean(currentStep)
+  const statusLine = message.agentStatusLine?.trim().replace(/^>\s*/, '')
+
   const hasAnything =
     completedSteps.length > 0 ||
     showLiveGroup ||
     Boolean(liveThinking) ||
-    Boolean(liveProse?.trim())
+    Boolean(liveProse?.trim()) ||
+    Boolean(statusLine)
 
   if (!hasAnything) return null
 
@@ -203,6 +206,10 @@ export function AgentStepsTimeline({ message, workspacePath, onImplementPlan }: 
 
       {liveThinking && !currentStep && (
         <ThinkingBlock text={liveThinking} live />
+      )}
+
+      {statusLine && (
+        <div className={styles.agentStatusLine}>{statusLine}</div>
       )}
     </div>
   )

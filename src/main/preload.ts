@@ -220,6 +220,7 @@ contextBridge.exposeInMainWorld('api', {
     onToken: (token: string) => void,
     onReasoningToken: (token: string) => void,
     onContextUsage: (usage: AgentCompletionUsage) => void,
+    onAgentPhase: (phase: 'llm' | 'tools' | 'summarize' | null, detail?: string) => void,
     onContextSummarized: () => void,
     onAskQuestion: (question: PendingAskQuestion) => void,
     onSwitchMode: (request: PendingSwitchMode) => void,
@@ -245,6 +246,10 @@ contextBridge.exposeInMainWorld('api', {
     const tokenHandler = (_e: Electron.IpcRendererEvent, token: string) => onToken(token)
     const reasoningHandler = (_e: Electron.IpcRendererEvent, token: string) => onReasoningToken(token)
     const usageHandler = (_e: Electron.IpcRendererEvent, usage: AgentCompletionUsage) => onContextUsage(usage)
+    const phaseHandler = (
+      _e: Electron.IpcRendererEvent,
+      data: { phase: 'llm' | 'tools' | 'summarize' | null; detail?: string }
+    ) => onAgentPhase(data.phase, data.detail)
     const summarizedHandler = () => onContextSummarized()
     const askQuestionHandler = (
       _e: Electron.IpcRendererEvent,
@@ -278,6 +283,7 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.off(`agent:token:${id}`, tokenHandler)
       ipcRenderer.off(`agent:reasoning:${id}`, reasoningHandler)
       ipcRenderer.off(`agent:usage:${id}`, usageHandler)
+      ipcRenderer.off(`agent:phase:${id}`, phaseHandler)
       ipcRenderer.off(`agent:summarized:${id}`, summarizedHandler)
       ipcRenderer.off(`agent:askQuestion:${id}`, askQuestionHandler)
       ipcRenderer.off(`agent:switchMode:${id}`, switchModeHandler)
@@ -291,6 +297,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(`agent:token:${id}`, tokenHandler)
     ipcRenderer.on(`agent:reasoning:${id}`, reasoningHandler)
     ipcRenderer.on(`agent:usage:${id}`, usageHandler)
+    ipcRenderer.on(`agent:phase:${id}`, phaseHandler)
     ipcRenderer.on(`agent:summarized:${id}`, summarizedHandler)
     ipcRenderer.on(`agent:askQuestion:${id}`, askQuestionHandler)
     ipcRenderer.on(`agent:switchMode:${id}`, switchModeHandler)

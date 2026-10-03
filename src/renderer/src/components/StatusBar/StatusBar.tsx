@@ -31,19 +31,19 @@ export function StatusBar(): JSX.Element {
         <button
           className={`${styles.item} ${isModelLoaded ? styles.modelActive : ''}`}
           onClick={() => setModelManagerOpen(true)}
-          title={t.modelManager}
+          data-tooltip={t.modelManager}
         >
           <span className={styles.icon}>⬡</span>
           <span>{isModelLoaded && modelName ? truncate(modelName, 22) : t.noModel}</span>
         </button>
         <span className={styles.divider} />
-        <button className={styles.item} onClick={toggleAiPanel} title={t.toggleAiPanel}>
+        <button className={styles.item} onClick={toggleAiPanel} data-tooltip={t.toggleAiPanel}>
           {t.ai}
         </button>
-        <button className={styles.item} onClick={toggleTerminal} title={t.toggleTerminalHint}>
+        <button className={styles.item} onClick={toggleTerminal} data-tooltip={t.toggleTerminalHint}>
           ⌨
         </button>
-        <button className={styles.item} onClick={toggleTheme} title={t.toggleTheme}>
+        <button className={styles.item} onClick={toggleTheme} data-tooltip={t.toggleTheme}>
           ◑
         </button>
       </div>

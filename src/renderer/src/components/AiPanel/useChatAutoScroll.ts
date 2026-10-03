@@ -1,11 +1,15 @@
-import { useCallback, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
-function isNearBottom(el: HTMLElement, threshold = 64): boolean {
+/** px from bottom — user scroll within this band keeps auto-follow enabled */
+const PIN_THRESHOLD_PX = 96
+
+function isNearBottom(el: HTMLElement, threshold = PIN_THRESHOLD_PX): boolean {
   return el.scrollHeight - el.scrollTop - el.clientHeight < threshold
 }
 
 export function useChatAutoScroll(
   messagesRef: React.RefObject<HTMLDivElement | null>,
+  bottomAnchorRef: React.RefObject<HTMLDivElement | null>,
   scrollTailKey: string,
   activeSessionId: string | null,
 ) {
@@ -22,15 +26,28 @@ export function useChatAutoScroll(
     scrollToBottom()
   }, [activeSessionId, scrollToBottom])
 
+  // Content grew while pinned — always follow (do not unpin because growth pushed us up).
   useLayoutEffect(() => {
-    const el = messagesRef.current
-    if (!el || !pinnedToBottomRef.current) return
-    if (!isNearBottom(el)) {
-      pinnedToBottomRef.current = false
-      return
-    }
+    if (!pinnedToBottomRef.current) return
     scrollToBottom()
-  }, [scrollTailKey, scrollToBottom, messagesRef])
+  }, [scrollTailKey, scrollToBottom])
+
+  // Tool bubbles / diffs resize without changing scrollTailKey — keep tail in view when pinned.
+  useEffect(() => {
+    const root = messagesRef.current
+    const anchor = bottomAnchorRef.current
+    if (!root || !anchor) return
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry || entry.isIntersecting) return
+        if (pinnedToBottomRef.current) scrollToBottom()
+      },
+      { root, threshold: 0 },
+    )
+    io.observe(anchor)
+    return () => io.disconnect()
+  }, [messagesRef, bottomAnchorRef, scrollToBottom, activeSessionId])
 
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {

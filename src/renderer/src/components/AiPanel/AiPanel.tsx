@@ -21,7 +21,11 @@ import { ComposerMentionInput } from './ComposerMentionInput'
 import { formatFileMention, insertTextAtSelection } from './mentionHighlight'
 import { ContextUsageRing } from './ContextUsageRing'
 import { relativeDisplayPath } from '../../utils/lineDiff'
-import { AgentTodoPanel } from './AgentTodoPanel'
+import { ComposerContextPanel } from './ComposerContextPanel'
+import {
+  activeTurnAssistantMessage,
+  collectChangedFilesFromMessage,
+} from './composerContextUtils'
 import { countChatContextTokens } from '../../utils/chatTokenCount'
 import { MODEL_CONTEXT_DEFAULT_K, contextKToTokens } from '../../../../shared/modelConfig'
 import type { AgentMode, ComposerMode } from '../../../../shared/agent/types'
@@ -143,11 +147,13 @@ export function AiPanel(): JSX.Element {
   } = useAiStore()
   const { modelManagerOpen, setModelManagerOpen, composerMode } = useUiStore()
   const { current: workspace, refreshTree } = useWorkspaceStore()
+  const { openTabAtLine } = useEditorStore()
   const [input, setInput] = useState('')
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([])
   const [composerDragOver, setComposerDragOver] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false)
+  const [contextPanelOpen, setContextPanelOpen] = useState(false)
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false)
   const { tabs, activeTabId, cursorLine } = useEditorStore()
   const [models, setModels] = useState<ApiModelConfig[]>([])
@@ -193,24 +199,35 @@ export function AiPanel(): JSX.Element {
   const scrollTailKey = useMemo(() => {
     const last = messages[messages.length - 1]
     if (!last) return ''
-    const toolCount = last.agentSteps?.reduce((n, s) => n + s.tools.length, 0) ?? last.toolEvents?.length ?? 0
+    const tools = last.agentSteps?.flatMap((s) => s.tools) ?? last.toolEvents ?? []
+    const toolCount = tools.length
+    const toolPayloadChars = tools.reduce(
+      (n, t) => n + (t.streamBody?.length ?? 0) + (t.result?.length ?? 0),
+      0,
+    )
+    const pendingTools = tools.filter((t) => t.status === 'pending').length
     return [
       last.content.length,
       last.agentReasoningBuffer?.length ?? 0,
       last.agentProseBuffer?.length ?? 0,
       last.agentStreamBuffer?.length ?? 0,
+      last.streamingAgentStep ?? 0,
       toolCount,
+      pendingTools,
+      toolPayloadChars,
+      last.agentStatusLine?.length ?? 0,
       last.isStreaming ? 1 : 0,
     ].join('|')
   }, [messages])
 
   const { handleScroll: handleAutoScroll, pinToBottom } = useChatAutoScroll(
     messagesRef,
+    bottomRef,
     scrollTailKey,
     activeSessionId,
   )
 
-  const { headerTurnIndex, showHeaderCopy, syncHeaderFromScroll } = usePromptHeader(
+  const { headerTurnIndex, showHeaderCopy, syncHeaderFromScroll, headerBarRef } = usePromptHeader(
     activeTurnIndex,
     messagesRef,
     promptAnchorRefs,
@@ -239,6 +256,23 @@ export function AiPanel(): JSX.Element {
     const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0
     return { used, total, pct }
   }, [models, activeModelId, messages, input, attachedImages, agentPromptTokens])
+
+  const changedFiles = useMemo(() => {
+    const assistant = activeTurnAssistantMessage(turns, activeTurnIndex)
+    return collectChangedFilesFromMessage(assistant, workspace?.path ?? null)
+  }, [turns, activeTurnIndex, messages, workspace?.path])
+
+  const toggleContextPanel = useCallback(() => {
+    setContextPanelOpen((open) => !open)
+  }, [])
+
+  const openChangedFile = useCallback(
+    (filePath: string, revealLine?: number) => {
+      const name = filePath.split(/[/\\]/).pop() ?? filePath
+      void openTabAtLine(filePath, name, revealLine)
+    },
+    [openTabAtLine]
+  )
 
   const loadModels = useCallback(async () => {
     const [list, settings] = await Promise.all([
@@ -660,28 +694,28 @@ export function AiPanel(): JSX.Element {
               key={session.id}
               className={`${styles.chatTab} ${session.id === activeSessionId ? styles.chatTabActive : ''} ${session.id === streamingSessionId ? styles.chatTabStreaming : ''}`}
               onClick={() => setActiveSession(session.id)}
-              title={session.title}
+              data-tooltip={session.title}
             >
               <span className={styles.chatTabIcon}><IconChatTab /></span>
               <span className={styles.chatTabTitle}>{session.title}</span>
               <button
                 className={styles.chatTabClose}
                 onClick={(e) => handleCloseTab(e, session.id)}
-                title={t.closeChat}
+                data-tooltip={t.closeChat}
               >
                 ×
               </button>
             </div>
           ))}
         </div>
-        <button className={styles.newChatBtn} onClick={() => createSession()} title={t.newChat}>
+        <button className={styles.newChatBtn} onClick={() => createSession()} data-tooltip={t.newChat}>
           +
         </button>
         <div className={styles.historyWrap} ref={historyRef}>
           <button
             className={`${styles.historyBtn} ${historyOpen ? styles.historyBtnActive : ''}`}
             onClick={() => setHistoryOpen((v) => !v)}
-            title={t.chatHistory}
+            data-tooltip={t.chatHistory}
           >
             <IconHistory />
           </button>
@@ -695,7 +729,7 @@ export function AiPanel(): JSX.Element {
                     key={session.id}
                     className={styles.historyItem}
                     onClick={() => handleRestore(session.id)}
-                    title={t.restoreChat}
+                    data-tooltip={t.restoreChat}
                   >
                     <span className={styles.historyItemTitle}>
                       <IconHistoryTitle className={styles.historyItemIcon} />
@@ -728,6 +762,7 @@ export function AiPanel(): JSX.Element {
 
       <div className={styles.messagesColumn}>
         <PromptHeaderBar
+          ref={headerBarRef}
           message={headerTurn?.userMessage ?? null}
           messageIndex={headerTurn?.userIndex ?? 0}
           visible={showHeaderCopy}
@@ -769,13 +804,14 @@ export function AiPanel(): JSX.Element {
       </div>
 
       <div className={styles.composerWrap}>
-        <div className={styles.composerCap}>
-          {agentTodos.length > 0 ? (
-            <AgentTodoPanel todos={agentTodos} />
-          ) : (
-            <span className={styles.composerCapText}>{t.composerCapEmpty}</span>
-          )}
-        </div>
+        <ComposerContextPanel
+          expanded={contextPanelOpen}
+          onToggle={toggleContextPanel}
+          contextUsage={contextUsage}
+          todos={agentTodos}
+          changedFiles={changedFiles}
+          onOpenFile={openChangedFile}
+        />
 
         <div
           className={`${styles.composer} ${composerDragOver ? styles.composerDragOver : ''}`}
@@ -805,7 +841,7 @@ export function AiPanel(): JSX.Element {
                       e.stopPropagation()
                       removeAttachedImage(img.path)
                     }}
-                    title={t.deleteFile}
+                    data-tooltip={t.deleteFile}
                     aria-label={t.deleteFile}
                   >
                     ×
@@ -833,7 +869,7 @@ export function AiPanel(): JSX.Element {
                   className={`${styles.modePill} ${composerModePillClass(composerMode)}`}
                   type="button"
                   onClick={() => setModeDropdownOpen((v) => !v)}
-                  title={t.switchMode}
+                  data-tooltip={t.switchMode}
                 >
                   <span className={styles.modeIcon}><ComposerModeIcon mode={composerMode} /></span>
                   <span>{composerModeLabel(composerMode)}</span>
@@ -876,7 +912,7 @@ export function AiPanel(): JSX.Element {
                   type="button"
                   onClick={() => setModelDropdownOpen((v) => !v)}
                   disabled={!isModelLoaded && models.length === 0}
-                  title={t.switchModel}
+                  data-tooltip={t.switchModel}
                 >
                   <span className={styles.modelSelectorText}>
                     {modelName ?? t.noModelLoaded}
@@ -938,6 +974,7 @@ export function AiPanel(): JSX.Element {
                   used={contextUsage.used}
                   total={contextUsage.total}
                   title={t.contextUsageTooltip(contextUsage.pct, contextUsage.used, contextUsage.total)}
+                  onClick={toggleContextPanel}
                 />
               )}
               <button
@@ -945,7 +982,7 @@ export function AiPanel(): JSX.Element {
                 type="button"
                 onClick={() => void pickImages()}
                 disabled={!isModelLoaded || isStreaming}
-                title={t.attachFile}
+                data-tooltip={t.attachFile}
               >
                 <IconAttach size={15} strokeWidth={1.5} />
               </button>
@@ -954,7 +991,7 @@ export function AiPanel(): JSX.Element {
                   className={`${styles.composerAction} ${styles.composerActionSend} ${styles.composerActionSendActive}`}
                   type="button"
                   onClick={stop}
-                  title={t.stop}
+                  data-tooltip={t.stop}
                 >
                   <IconStop size={11} />
                 </button>
@@ -964,7 +1001,7 @@ export function AiPanel(): JSX.Element {
                   type="button"
                   onClick={() => void handleSend()}
                   disabled={!canSend}
-                  title={t.send}
+                  data-tooltip={t.send}
                 >
                   <IconSend size={13} strokeWidth={2.25} />
                 </button>

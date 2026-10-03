@@ -1,8 +1,8 @@
 import type { AgentChatMessage } from '../../shared/agent/agentChatMessages'
 import {
   buildSummaryInjectionMessage,
-  estimateAgentMessagesTokens,
   mergeHistoryAfterSummary,
+  resolveAgentPromptTokens,
   serializeAgentSegmentForSummary,
   splitAgentHistoryForSummary,
   squeezeToolOutputsForSummary,
@@ -10,6 +10,7 @@ import {
 import { buildSummaryUserPrompt, SUMMARY_SYSTEM_PROMPT } from '../../shared/agent/summaryPrompts'
 import type { AppSettings } from '../../shared/types'
 import { contextKToTokens, MODEL_CONTEXT_DEFAULT_K } from '../../shared/modelConfig'
+import { agentRunLog } from './agentRunLog'
 import { llmService } from '../services/LlmService'
 import { modelRegistryService } from '../services/ModelRegistryService'
 import { settingsService } from '../services/SettingsService'
@@ -56,7 +57,7 @@ export function shouldSummarizeAgentHistory(
   const total = getContextTokenBudget()
   if (total <= 0) return false
 
-  const used = promptTokens ?? estimateAgentMessagesTokens(messages)
+  const used = resolveAgentPromptTokens(messages, promptTokens)
   const percent = (used / total) * 100
   if (percent < settings.agentSummarizeAtPercent) return false
 
@@ -104,6 +105,8 @@ export async function trySummarizeAgentHistory(
     const next = mergeHistoryAfterSummary(split.head, summaryMessage, split.tail)
     return { messages: next, summarized: true }
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    agentRunLog(`summarize failed: ${msg}`)
     console.warn('[contextSummarizer] summary call failed:', err)
     return { messages, summarized: false }
   }

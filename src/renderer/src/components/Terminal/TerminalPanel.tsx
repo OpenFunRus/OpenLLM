@@ -121,7 +121,7 @@ export function TerminalPanel({ cwd, sessionId }: Props): JSX.Element {
     <div ref={panelRef} className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>{t.terminalHeader}</span>
-        <button className="icon-btn" onClick={toggleTerminal} title={t.closeTerminal}>✕</button>
+        <button className="icon-btn" onClick={toggleTerminal} data-tooltip={t.closeTerminal}>✕</button>
       </div>
       <div ref={containerRef} className={styles.xterm} />
     </div>

@@ -44,11 +44,14 @@ import { createToolExecutor } from './ToolExecutor'
 import { getRuntimeEnvironment } from './runtimeEnv'
 import { getShellService } from './shellRegistry'
 import { AgentAbortedError } from '../../shared/agent/errors'
-import { estimateAgentMessagesTokens } from '../../shared/agent/contextSummarizer'
+import { resolveAgentPromptTokens } from '../../shared/agent/contextSummarizer'
 import {
   shouldSummarizeAgentHistory,
   trySummarizeAgentHistory,
 } from './runContextSummarization'
+import { agentRunLog } from './agentRunLog'
+
+export type AgentRunPhase = 'llm' | 'tools' | 'summarize' | null
 
 export type AgentRunCallbacks = {
   onTool?: (event: AgentToolEvent) => void
@@ -58,19 +61,20 @@ export type AgentRunCallbacks = {
   onReasoningToken?: (token: string) => void
   onContextUsage?: (usage: AgentCompletionUsage) => void
   onContextSummarized?: () => void
+  onAgentPhase?: (phase: AgentRunPhase, detail?: string) => void
   isAborted?: () => boolean
 }
 
 const lastToolDeltaSnapshot = new Map<string, string>()
 
 function emitStreamingToolDeltas(
-  step: number,
+  totalStep: number,
   calls: Array<{ index: number; id?: string; name?: string; argumentsPartial: string }>,
   callbacks: AgentRunCallbacks
 ): void {
   for (const call of calls) {
     if (!call.name) continue
-    const deltaKey = `${step + 1}-${call.index}`
+    const deltaKey = `${totalStep}-${call.index}`
     const snapshot = `${call.name}\0${call.argumentsPartial}`
     if (lastToolDeltaSnapshot.get(deltaKey) === snapshot) continue
     lastToolDeltaSnapshot.set(deltaKey, snapshot)
@@ -84,8 +88,8 @@ function emitStreamingToolDeltas(
           : undefined
 
     callbacks.onTool?.({
-      step: step + 1,
-      toolId: `${step + 1}-${call.index}`,
+      step: totalStep,
+      toolId: `${totalStep}-${call.index}`,
       status: 'pending',
       name: call.name,
       arguments: args,
@@ -137,7 +141,7 @@ async function enrichUserContext(ctx: AgentUserContext): Promise<AgentUserContex
 
 async function executeToolCalls(
   toolCalls: ParsedToolCall[],
-  step: number,
+  totalStep: number,
   executor: ReturnType<typeof createToolExecutor>,
   callbacks: AgentRunCallbacks
 ) {
@@ -148,7 +152,7 @@ async function executeToolCalls(
   for (let i = 0; i < toolCalls.length; i++) {
     if (callbacks.isAborted?.()) break
     const call = toolCalls[i]
-    const toolId = `${step + 1}-${i}`
+    const toolId = `${totalStep}-${i}`
     const pathArg = typeof call.arguments.path === 'string' ? call.arguments.path : undefined
     const contentsArg =
       typeof call.arguments.contents === 'string'
@@ -159,7 +163,7 @@ async function executeToolCalls(
     const isFileTool = call.name === 'Write' || call.name === 'StrReplace' || call.name === 'Delete'
 
     callbacks.onTool?.({
-      step: step + 1,
+      step: totalStep,
       toolId,
       status: 'pending',
       name: call.name,
@@ -186,7 +190,7 @@ async function executeToolCalls(
     results.push(result)
 
     const event: AgentToolEvent = {
-      step: step + 1,
+      step: totalStep,
       toolId,
       status: 'done',
       name: call.name,
@@ -231,6 +235,9 @@ export class AgentOrchestrator {
     const hardMaxSteps = AGENT_HARD_LIMITS.maxSteps
     const displayMaxSteps = Math.min(hardMaxSteps, priorSteps + batchSteps)
     const startedAt = Date.now()
+    agentRunLog(
+      `run start session=${payload.sessionId} priorSteps=${priorSteps} batchSteps=${batchSteps} summarizeAt=${summarizeAtPercent}% mode=${summarizeMode}`
+    )
 
     const shellService = agentRunNeedsShell(payload)
       ? getShellService(payload.sessionId, payload.userContext.workspacePath)
@@ -313,7 +320,7 @@ export class AgentOrchestrator {
     lastToolDeltaSnapshot.clear()
 
     const maybeSummarizeContext = async (): Promise<boolean> => {
-      const promptTokens = lastUsage?.promptTokens ?? estimateAgentMessagesTokens(messages)
+      const promptTokens = resolveAgentPromptTokens(messages, lastUsage?.promptTokens)
       if (!shouldSummarizeAgentHistory(messages, promptTokens)) {
         if (
           summarizeMode === 'pause'
@@ -326,7 +333,21 @@ export class AgentOrchestrator {
         return false
       }
 
-      const result = await trySummarizeAgentHistory(messages, promptTokens)
+      agentRunLog(
+        `summarize start tokens=${promptTokens} pct=${contextUsagePercent(promptTokens).toFixed(1)}`
+      )
+      callbacks.onAgentPhase?.('summarize')
+      let result: Awaited<ReturnType<typeof trySummarizeAgentHistory>> = {
+        messages,
+        summarized: false,
+      }
+      try {
+        result = await trySummarizeAgentHistory(messages, promptTokens)
+      } finally {
+        callbacks.onAgentPhase?.(null)
+        agentRunLog(`summarize end summarized=${result.summarized}`)
+      }
+
       if (!result.summarized) {
         if (summarizeMode === 'pause' && contextUsagePercent(promptTokens) >= summarizeAtPercent) {
           paused = true
@@ -341,7 +362,7 @@ export class AgentOrchestrator {
       callbacks.onContextSummarized?.()
       lastUsage = undefined
 
-      const estimated = estimateAgentMessagesTokens(messages)
+      const estimated = resolveAgentPromptTokens(messages)
       if (
         summarizeMode === 'pause'
         && contextUsagePercent(estimated) >= summarizeAtPercent
@@ -368,6 +389,7 @@ export class AgentOrchestrator {
       }
 
       callbacks.onStepStart?.(totalStep, displayMaxSteps)
+      agentRunLog(`step ${totalStep} start priorSteps=${priorSteps} msgs=${messages.length}`)
 
       if (await maybeSummarizeContext()) break
 
@@ -380,22 +402,48 @@ export class AgentOrchestrator {
         }
 
         let result
+        let llmHeartbeat: ReturnType<typeof setInterval> | undefined
+        let llmWaitCleared = false
+        const clearLlmWait = () => {
+          if (llmWaitCleared) return
+          llmWaitCleared = true
+          callbacks.onAgentPhase?.(null)
+        }
         try {
+          agentRunLog(`step ${totalStep} llm stream start`)
+          callbacks.onAgentPhase?.('llm', `step ${totalStep}`)
+          llmHeartbeat = setInterval(() => {
+            agentRunLog(`step ${totalStep} still waiting for LLM…`)
+          }, 20_000)
           result = await llmService.completeAgentStream(messages, {
             images: step === 0 ? payload.images : undefined,
             tools: apiTools,
-            onToken: (token) => callbacks.onToken?.(token),
-            onReasoningToken: (token) => callbacks.onReasoningToken?.(token),
+            onToken: (token) => {
+              clearLlmWait()
+              callbacks.onToken?.(token)
+            },
+            onReasoningToken: (token) => {
+              clearLlmWait()
+              callbacks.onReasoningToken?.(token)
+            },
             onReasoningComplete: (reasoning) => commitStepThinking(reasoning.trim() || null),
-            onToolCallDelta: (calls) => emitStreamingToolDeltas(step, calls, callbacks),
+            onToolCallDelta: (calls) => {
+              clearLlmWait()
+              emitStreamingToolDeltas(totalStep, calls, callbacks)
+            },
             isAborted: callbacks.isAborted,
           })
+          agentRunLog(`step ${totalStep} llm stream done tools=${result.toolCalls.length}`)
         } catch (err) {
           if (err instanceof AgentAbortedError) {
             finalText = err.message
             break
           }
+          agentRunLog(`step ${totalStep} llm error: ${err instanceof Error ? err.message : String(err)}`)
           throw err
+        } finally {
+          if (llmHeartbeat) clearInterval(llmHeartbeat)
+          callbacks.onAgentPhase?.(null)
         }
 
         if (callbacks.isAborted?.()) {
@@ -417,7 +465,12 @@ export class AgentOrchestrator {
         }
 
         commitStepThinking(thinking)
-        const executed = await executeToolCalls(toolCalls, step, executor, callbacks)
+        const toolNames = toolCalls.map((c) => c.name).join(', ')
+        agentRunLog(`step ${totalStep} tools start: ${toolNames}`)
+        callbacks.onAgentPhase?.('tools', toolNames)
+        const executed = await executeToolCalls(toolCalls, totalStep, executor, callbacks)
+        callbacks.onAgentPhase?.(null)
+        agentRunLog(`step ${totalStep} tools done`)
         toolEvents.push(...executed.toolEvents)
         if (callbacks.isAborted?.()) {
           finalText = 'Agent stopped.'
@@ -465,7 +518,7 @@ export class AgentOrchestrator {
       const thinking = extractPrimaryThinking(assistantRaw)
       callbacks.onStep?.(totalStep, displayMaxSteps, thinking)
 
-      const executed = await executeToolCalls(toolCalls, step, executor, callbacks)
+      const executed = await executeToolCalls(toolCalls, totalStep, executor, callbacks)
       toolEvents.push(...executed.toolEvents)
       if (callbacks.isAborted?.()) {
         finalText = 'Agent stopped.'
@@ -511,6 +564,10 @@ export class AgentOrchestrator {
       !callbacks.isAborted?.()
 
     setAgentSessionMessages(sessionId, messages)
+
+    agentRunLog(
+      `run end steps=${totalSteps} paused=${paused} reason=${pauseReason ?? 'none'} finalText=${Boolean(finalText)}`
+    )
 
     return {
       finalText,

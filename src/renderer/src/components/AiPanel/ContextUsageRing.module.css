@@ -8,6 +8,13 @@
   padding: 0;
 }
 
+.clickable {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
 .track {
   stroke: var(--border-light);
 }

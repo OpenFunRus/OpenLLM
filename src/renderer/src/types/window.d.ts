@@ -117,6 +117,7 @@ declare global {
         onToken: (token: string) => void,
         onReasoningToken: (token: string) => void,
         onContextUsage: (usage: import('../../../../shared/agent/types').AgentCompletionUsage) => void,
+        onAgentPhase: (phase: 'llm' | 'tools' | 'summarize' | null, detail?: string) => void,
         onContextSummarized: () => void,
         onAskQuestion: (question: import('../../../../shared/agent/types').PendingAskQuestion) => void,
         onSwitchMode: (request: import('../../../../shared/agent/types').PendingSwitchMode) => void,

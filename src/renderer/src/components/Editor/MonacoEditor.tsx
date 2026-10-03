@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import Editor, { type OnMount, type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 import { useEditorStore } from '../../store/editorStore'
@@ -11,12 +11,13 @@ interface Props {
 }
 
 export function MonacoEditor({ tab }: Props): JSX.Element {
-  const { setTabContent, saveTab, setCursorPosition, revealLine, revealTabId, clearRevealLine, activeTabId } = useEditorStore()
+  const { setTabContent, saveTab, setCursorPosition, revealLine, revealTabId, revealNonce, clearRevealLine, activeTabId } = useEditorStore()
   const { isModelLoaded } = useAiStore()
   const { editorFontSize, editorTabSize } = useUiStore()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
   const fimDecorationsRef = useRef<string[]>([])
+  const [editorReady, setEditorReady] = useState(false)
 
   const handleMount: OnMount = useCallback((editorInstance, monacoInstance) => {
     editorRef.current = editorInstance
@@ -49,15 +50,21 @@ export function MonacoEditor({ tab }: Props): JSX.Element {
     editorInstance.onDidChangeCursorPosition((e) => {
       setCursorPosition(e.position.lineNumber, e.position.column)
     })
+
+    setEditorReady(true)
   }, [tab.id, saveTab, isModelLoaded, setCursorPosition])
 
   useEffect(() => {
+    setEditorReady(false)
+  }, [tab.id])
+
+  useEffect(() => {
     const editorInstance = editorRef.current
-    if (!editorInstance || revealTabId !== activeTabId || !revealLine) return
+    if (!editorReady || !editorInstance || revealTabId !== tab.id || activeTabId !== tab.id || !revealLine) return
     editorInstance.revealLineInCenter(revealLine)
     editorInstance.setPosition({ lineNumber: revealLine, column: 1 })
     clearRevealLine()
-  }, [revealLine, revealTabId, activeTabId, tab.id, clearRevealLine])
+  }, [editorReady, revealLine, revealTabId, revealNonce, activeTabId, tab.id, clearRevealLine])
 
   // Re-register FIM when model status changes
   useEffect(() => {

@@ -36,6 +36,9 @@ export function usePromptHeader(
   const [headerTurnIndex, setHeaderTurnIndex] = useState(activeTurnIndex)
   const [showHeaderCopy, setShowHeaderCopy] = useState(false)
   const showHeaderCopyRef = useRef(false)
+  const prevShowHeaderCopyRef = useRef(false)
+  const lastHeaderHeightRef = useRef(0)
+  const headerBarRef = useRef<HTMLDivElement>(null)
 
   const syncHeaderCopyVisibility = useCallback(
     (header: number) => {
@@ -70,6 +73,24 @@ export function usePromptHeader(
     syncHeaderFromScroll()
   }, [activeTurnIndex, scrollTailKey, syncHeaderFromScroll])
 
+  // Keep scroll position stable when the pinned header appears/disappears.
+  useLayoutEffect(() => {
+    const container = messagesRef.current
+    if (!container) return
+
+    const prev = prevShowHeaderCopyRef.current
+    if (prev === showHeaderCopy) return
+
+    const height = headerBarRef.current?.offsetHeight ?? lastHeaderHeightRef.current
+    if (showHeaderCopy && height > 0) {
+      container.scrollTop += height
+      lastHeaderHeightRef.current = height
+    } else if (prev && !showHeaderCopy && lastHeaderHeightRef.current > 0) {
+      container.scrollTop = Math.max(0, container.scrollTop - lastHeaderHeightRef.current)
+    }
+    prevShowHeaderCopyRef.current = showHeaderCopy
+  }, [showHeaderCopy, messagesRef])
+
   useEffect(() => {
     const root = messagesRef.current
     const prompt = promptAnchorRefs.current?.get(headerTurnIndex)
@@ -87,5 +108,5 @@ export function usePromptHeader(
     return () => observer.disconnect()
   }, [headerTurnIndex, scrollTailKey, messagesRef, promptAnchorRefs, syncHeaderCopyVisibility])
 
-  return { headerTurnIndex, showHeaderCopy, syncHeaderFromScroll }
+  return { headerTurnIndex, showHeaderCopy, syncHeaderFromScroll, headerBarRef }
 }

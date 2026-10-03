@@ -174,7 +174,7 @@ function TreeNode({
         onDragOver={(event) => onNodeDragOver(node, event)}
         onDragLeave={(event) => onNodeDragLeave(node, event)}
         onDrop={(event) => onNodeDrop(node, event)}
-        title={node.path}
+        data-tooltip={node.path}
       >
         <span
           className={styles.twistie}
@@ -845,7 +845,7 @@ export function FileTree(): JSX.Element {
               type="button"
               className={styles.toolBtn}
               onClick={() => void createEntry('file')}
-              title={t.newFile}
+              data-tooltip={t.newFile}
             >
               <IconNewFile />
             </button>
@@ -853,7 +853,7 @@ export function FileTree(): JSX.Element {
               type="button"
               className={styles.toolBtn}
               onClick={() => void createEntry('folder')}
-              title={t.newFolder}
+              data-tooltip={t.newFolder}
             >
               <IconNewFolder />
             </button>
@@ -861,7 +861,7 @@ export function FileTree(): JSX.Element {
               type="button"
               className={styles.toolBtn}
               onClick={handleCollapseAll}
-              title={t.collapseAll}
+              data-tooltip={t.collapseAll}
             >
               <IconCollapseAll />
             </button>
@@ -869,7 +869,7 @@ export function FileTree(): JSX.Element {
               type="button"
               className={styles.toolBtn}
               onClick={handleOpenProjectFolder}
-              title={t.openProjectFolder}
+              data-tooltip={t.openProjectFolder}
             >
               <IconOpenInExplorer />
             </button>

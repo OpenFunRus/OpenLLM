@@ -24,7 +24,7 @@ export function ActivityBar(): JSX.Element {
         <button
           className={styles.item}
           onClick={handleOpenFolder}
-          title={t.openFolder}
+          data-tooltip={t.openFolder}
         >
           <IconFolderOpen />
         </button>
@@ -32,21 +32,21 @@ export function ActivityBar(): JSX.Element {
         <button
           className={`${styles.item} ${sidebarPanel === 'files' ? styles.active : ''}`}
           onClick={() => setSidebarPanel('files')}
-          title={t.explorer}
+          data-tooltip={t.explorer}
         >
           <IconFiles />
         </button>
         <button
           className={styles.item}
           onClick={() => setModelManagerOpen(true)}
-          title={t.modelManager}
+          data-tooltip={t.modelManager}
         >
           <IconModel />
         </button>
         <button
           className={styles.item}
           onClick={() => setSettingsOpen(true)}
-          title={t.settings}
+          data-tooltip={t.settings}
         >
           <IconSettings />
         </button>

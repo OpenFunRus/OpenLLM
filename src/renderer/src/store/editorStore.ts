@@ -8,6 +8,8 @@ interface EditorState {
   cursorColumn: number
   revealLine: number | null
   revealTabId: string | null
+  /** Bumped on each openTabAtLine with a line so reveal re-runs for an already-open tab. */
+  revealNonce: number
   markdownPreview: Record<string, boolean>
   openTab: (path: string, name: string) => Promise<void>
   openTabAtLine: (path: string, name: string, line?: number) => Promise<void>
@@ -43,6 +45,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   cursorColumn: 1,
   revealLine: null,
   revealTabId: null,
+  revealNonce: 0,
   markdownPreview: {},
 
   openTab: async (path: string, name: string) => {
@@ -54,11 +57,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { tabs } = get()
     const existing = tabs.find((t) => pathsEqual(t.path, normalizedPath))
     if (existing) {
-      set({
+      set((s) => ({
         activeTabId: existing.id,
         revealLine: line ?? null,
         revealTabId: line ? existing.id : null,
-      })
+        revealNonce: line ? s.revealNonce + 1 : s.revealNonce,
+      }))
       return
     }
 
@@ -72,6 +76,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         activeTabId: id,
         revealLine: line ?? null,
         revealTabId: line ? id : null,
+        revealNonce: line ? s.revealNonce + 1 : s.revealNonce,
       }))
     } catch {
       /* file missing or unreadable */

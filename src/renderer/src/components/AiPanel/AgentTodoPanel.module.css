@@ -33,6 +33,11 @@
   overflow-y: auto;
 }
 
+.listEmbedded {
+  max-height: none;
+  overflow: visible;
+}
+
 .item {
   display: flex;
   align-items: flex-start;

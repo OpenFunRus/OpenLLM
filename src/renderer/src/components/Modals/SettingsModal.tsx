@@ -47,6 +47,23 @@ export function SettingsModal(): JSX.Element | null {
     setSettings((s) => (s ? { ...s, [key]: value } : s))
   }
 
+  const SUMMARIZE_KEYS = new Set<keyof AppSettings>([
+    'agentSummarizeEnabled',
+    'agentSummarizeAtPercent',
+    'agentSummarizeTargetRatio',
+    'agentSummarizeKeepRecentTurns',
+    'agentSummarizeMode',
+    'agentSummarizePreSqueeze',
+    'agentSummarizeModelId',
+  ])
+
+  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    update(key, value)
+    if (SUMMARIZE_KEYS.has(key)) {
+      void window.api.setSetting(key, value)
+    }
+  }
+
   const save = async () => {
     if (!settings) return
     const keys: (keyof AppSettings)[] = [
@@ -157,13 +174,14 @@ export function SettingsModal(): JSX.Element | null {
                 </div>
                 <div className={styles.group}>
                   <label className={styles.label}>{t.agentSummarizeTitle}</label>
+                  <span className={styles.hint}>{t.agentSummarizeSettingsAutoSave}</span>
                 </div>
                 <div className={styles.group}>
                   <label className={styles.checkboxRow}>
                     <input
                       type="checkbox"
                       checked={settings.agentSummarizeEnabled}
-                      onChange={(e) => update('agentSummarizeEnabled', e.target.checked)}
+                      onChange={(e) => updateSetting('agentSummarizeEnabled', e.target.checked)}
                     />
                     {t.agentSummarizeEnabled}
                   </label>
@@ -178,7 +196,7 @@ export function SettingsModal(): JSX.Element | null {
                     max={99}
                     disabled={!settings.agentSummarizeEnabled}
                     value={settings.agentSummarizeAtPercent}
-                    onChange={(e) => update('agentSummarizeAtPercent', Number(e.target.value))}
+                    onChange={(e) => updateSetting('agentSummarizeAtPercent', Number(e.target.value))}
                   />
                   <span className={styles.hint}>{t.agentSummarizeAtPercentHint}</span>
                 </div>
@@ -192,7 +210,7 @@ export function SettingsModal(): JSX.Element | null {
                     disabled={!settings.agentSummarizeEnabled}
                     value={Math.round(settings.agentSummarizeTargetRatio * 100)}
                     onChange={(e) =>
-                      update('agentSummarizeTargetRatio', Number(e.target.value) / 100)
+                      updateSetting('agentSummarizeTargetRatio', Number(e.target.value) / 100)
                     }
                   />
                   <span className={styles.hint}>{t.agentSummarizeTargetRatioHint}</span>
@@ -206,7 +224,7 @@ export function SettingsModal(): JSX.Element | null {
                     max={5}
                     disabled={!settings.agentSummarizeEnabled}
                     value={settings.agentSummarizeKeepRecentTurns}
-                    onChange={(e) => update('agentSummarizeKeepRecentTurns', Number(e.target.value))}
+                    onChange={(e) => updateSetting('agentSummarizeKeepRecentTurns', Number(e.target.value))}
                   />
                   <span className={styles.hint}>{t.agentSummarizeKeepRecentTurnsHint}</span>
                 </div>
@@ -217,7 +235,7 @@ export function SettingsModal(): JSX.Element | null {
                     disabled={!settings.agentSummarizeEnabled}
                     value={settings.agentSummarizeMode}
                     onChange={(e) =>
-                      update('agentSummarizeMode', e.target.value as AppSettings['agentSummarizeMode'])
+                      updateSetting('agentSummarizeMode', e.target.value as AppSettings['agentSummarizeMode'])
                     }
                   >
                     <option value="auto">{t.agentSummarizeModeAuto}</option>
@@ -230,7 +248,7 @@ export function SettingsModal(): JSX.Element | null {
                       type="checkbox"
                       checked={settings.agentSummarizePreSqueeze}
                       disabled={!settings.agentSummarizeEnabled}
-                      onChange={(e) => update('agentSummarizePreSqueeze', e.target.checked)}
+                      onChange={(e) => updateSetting('agentSummarizePreSqueeze', e.target.checked)}
                     />
                     {t.agentSummarizePreSqueeze}
                   </label>
@@ -243,7 +261,7 @@ export function SettingsModal(): JSX.Element | null {
                     disabled={!settings.agentSummarizeEnabled}
                     value={settings.agentSummarizeModelId ?? ''}
                     onChange={(e) =>
-                      update('agentSummarizeModelId', e.target.value || null)
+                      updateSetting('agentSummarizeModelId', e.target.value || null)
                     }
                   >
                     <option value="">{t.agentSummarizeModelActive}</option>

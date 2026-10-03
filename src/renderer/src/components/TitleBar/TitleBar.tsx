@@ -25,26 +25,26 @@ export function TitleBar(): JSX.Element {
       <button
         className={`${styles.search} no-drag`}
         onClick={() => setCommandPaletteOpen(true)}
-        title={t.commandPaletteTitle}
+        data-tooltip={t.commandPaletteTitle}
       >
         <span className={styles.searchIcon}>⌕</span>
         <span className={styles.searchText}>{title}</span>
       </button>
       <div className={`${styles.controls} no-drag`}>
-        <button className={styles.ctrl} onClick={() => window.api.minimize()} title={t.minimize}>
+        <button className={styles.ctrl} onClick={() => window.api.minimize()} data-tooltip={t.minimize}>
           <span className={`codicon codicon-chrome-minimize ${styles.winIcon}`} aria-hidden="true" />
         </button>
         <button
           className={styles.ctrl}
           onClick={() => window.api.maximize()}
-          title={isMaximized ? t.restoreWindow : t.maximize}
+          data-tooltip={isMaximized ? t.restoreWindow : t.maximize}
         >
           <span
             className={`codicon ${isMaximized ? 'codicon-chrome-restore' : 'codicon-chrome-maximize'} ${styles.winIcon}`}
             aria-hidden="true"
           />
         </button>
-        <button className={`${styles.ctrl} ${styles.close}`} onClick={() => window.api.close()} title={t.close}>
+        <button className={`${styles.ctrl} ${styles.close}`} onClick={() => window.api.close()} data-tooltip={t.close}>
           <span className={`codicon codicon-chrome-close ${styles.winIcon}`} aria-hidden="true" />
         </button>
       </div>

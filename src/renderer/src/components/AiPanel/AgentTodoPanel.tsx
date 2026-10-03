@@ -4,6 +4,8 @@ import styles from './AgentTodoPanel.module.css'
 
 interface AgentTodoPanelProps {
   todos: AgentTodoItem[]
+  /** Hide panel header when embedded in composer context drawer. */
+  embedded?: boolean
 }
 
 function statusIcon(status: AgentTodoItem['status']): string {
@@ -19,7 +21,7 @@ function statusIcon(status: AgentTodoItem['status']): string {
   }
 }
 
-export function AgentTodoPanel({ todos }: AgentTodoPanelProps): JSX.Element | null {
+export function AgentTodoPanel({ todos, embedded = false }: AgentTodoPanelProps): JSX.Element | null {
   const visible = todos.filter((item) => item.status !== 'cancelled')
   if (visible.length === 0) return null
 
@@ -27,11 +29,13 @@ export function AgentTodoPanel({ todos }: AgentTodoPanelProps): JSX.Element | nu
 
   return (
     <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>{t.agentTodosTitle}</span>
-        <span className={styles.count}>{t.agentTodosProgress(done, visible.length)}</span>
-      </div>
-      <ul className={styles.list}>
+      {!embedded && (
+        <div className={styles.header}>
+          <span className={styles.title}>{t.agentTodosTitle}</span>
+          <span className={styles.count}>{t.agentTodosProgress(done, visible.length)}</span>
+        </div>
+      )}
+      <ul className={embedded ? `${styles.list} ${styles.listEmbedded}` : styles.list}>
         {visible.map((item) => (
           <li
             key={item.id}

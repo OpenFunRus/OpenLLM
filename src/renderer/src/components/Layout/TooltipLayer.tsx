@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './TooltipLayer.module.css'
 
-const SHOW_DELAY_MS = 450
+const SHOW_DELAY_MS = 400
+const HIDE_DELAY_MS = 64
 const LONG_TEXT_THRESHOLD = 48
 
 interface TooltipState {
@@ -11,10 +12,25 @@ interface TooltipState {
   top: number
 }
 
-function findTitledElement(node: EventTarget | null): HTMLElement | null {
+function findTooltipHost(node: EventTarget | null): HTMLElement | null {
   if (!(node instanceof Element)) return null
-  const el = node.closest('[title], [data-tooltip-held]')
+  const el = node.closest('[data-tooltip]')
   return el instanceof HTMLElement ? el : null
+}
+
+function stripNativeTitle(el: HTMLElement): void {
+  const text = el.getAttribute('title')?.trim()
+  if (text && !el.getAttribute('data-tooltip')?.trim()) {
+    el.setAttribute('data-tooltip', text)
+  }
+  if (el.hasAttribute('title')) {
+    el.removeAttribute('title')
+  }
+}
+
+function stripNativeTitlesIn(root: ParentNode): void {
+  if (root instanceof HTMLElement) stripNativeTitle(root)
+  root.querySelectorAll<HTMLElement>('[title]').forEach(stripNativeTitle)
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -51,90 +67,208 @@ function computePosition(anchor: DOMRect, tipWidth: number, tipHeight: number): 
   return { left, top }
 }
 
+function tooltipPosition(el: HTMLElement, text: string): TooltipState {
+  const anchor = el.getBoundingClientRect()
+  const wrap = text.length > LONG_TEXT_THRESHOLD
+  const { width, height } = measureTooltip(text, wrap)
+  const { left, top } = computePosition(anchor, width, height)
+  return { text, left, top }
+}
+
 export function TooltipLayer(): JSX.Element | null {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const activeTargetRef = useRef<HTMLElement | null>(null)
+  const pendingTargetRef = useRef<HTMLElement | null>(null)
+  const pendingTextRef = useRef<string | null>(null)
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tooltipVisibleRef = useRef(false)
+  const pointerRef = useRef({ x: 0, y: 0 })
+  const refreshRafRef = useRef(0)
 
-  const hideTooltip = () => {
+  const hostAtPointer = (): HTMLElement | null =>
+    findTooltipHost(document.elementFromPoint(pointerRef.current.x, pointerRef.current.y))
+
+  const clearPending = () => {
     if (showTimerRef.current) {
       clearTimeout(showTimerRef.current)
       showTimerRef.current = null
     }
+    pendingTargetRef.current = null
+    pendingTextRef.current = null
+  }
 
-    const active = activeTargetRef.current
-    if (active?.dataset.tooltipHeld) {
-      active.setAttribute('title', active.dataset.tooltipHeld)
-      delete active.dataset.tooltipHeld
+  const clearHideTimer = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
     }
+  }
 
+  const hideTooltip = () => {
+    clearHideTimer()
+    clearPending()
     activeTargetRef.current = null
+    tooltipVisibleRef.current = false
     setTooltip(null)
   }
 
-  const showTooltip = (el: HTMLElement) => {
-    const text = el.getAttribute('title')?.trim()
-    if (!text) return
-
-    el.dataset.tooltipHeld = text
-    el.removeAttribute('title')
+  const paintTooltip = (el: HTMLElement, text: string) => {
     activeTargetRef.current = el
+    tooltipVisibleRef.current = true
+    setTooltip(tooltipPosition(el, text))
+  }
 
-    const anchor = el.getBoundingClientRect()
-    const wrap = text.length > LONG_TEXT_THRESHOLD
-    const { width, height } = measureTooltip(text, wrap)
-    const { left, top } = computePosition(anchor, width, height)
+  const scheduleRefresh = () => {
+    cancelAnimationFrame(refreshRafRef.current)
+    refreshRafRef.current = requestAnimationFrame(() => {
+      if (!tooltipVisibleRef.current && !showTimerRef.current) return
 
-    setTooltip({ text, left, top })
+      const host = hostAtPointer()
+      if (!host) {
+        if (!showTimerRef.current) hideTooltip()
+        return
+      }
+
+      const text = host.getAttribute('data-tooltip')?.trim()
+      if (!text) {
+        hideTooltip()
+        return
+      }
+
+      if (tooltipVisibleRef.current) {
+        paintTooltip(host, text)
+        return
+      }
+
+      if (showTimerRef.current && pendingTextRef.current === text) {
+        pendingTargetRef.current = host
+      }
+    })
   }
 
   useEffect(() => {
-    const scheduleShow = (el: HTMLElement) => {
-      if (showTimerRef.current) clearTimeout(showTimerRef.current)
-      showTimerRef.current = setTimeout(() => showTooltip(el), SHOW_DELAY_MS)
+    stripNativeTitlesIn(document.body)
+
+    const observer = new MutationObserver((mutations) => {
+      let needsRefresh = false
+      for (const mutation of mutations) {
+        if (
+          mutation.type === 'attributes'
+          && mutation.attributeName === 'title'
+          && mutation.target instanceof HTMLElement
+        ) {
+          stripNativeTitle(mutation.target)
+        }
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) stripNativeTitlesIn(node)
+          })
+          if (tooltipVisibleRef.current || showTimerRef.current) {
+            needsRefresh = true
+          }
+        }
+      }
+      if (needsRefresh) scheduleRefresh()
+    })
+    observer.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['title'],
+      childList: true,
+    })
+
+    const scheduleShow = (el: HTMLElement, text: string) => {
+      clearPending()
+      pendingTargetRef.current = el
+      pendingTextRef.current = text
+      showTimerRef.current = setTimeout(() => {
+        showTimerRef.current = null
+        pendingTargetRef.current = null
+        pendingTextRef.current = null
+
+        const host = hostAtPointer()
+        if (!host) return
+        const liveText = host.getAttribute('data-tooltip')?.trim()
+        if (!liveText) return
+        paintTooltip(host, liveText)
+      }, SHOW_DELAY_MS)
+    }
+
+    const onPointerMove = (event: MouseEvent) => {
+      pointerRef.current = { x: event.clientX, y: event.clientY }
     }
 
     const onMouseOver = (event: MouseEvent) => {
-      const el = findTitledElement(event.target)
-      if (!el) {
-        if (showTimerRef.current) {
-          clearTimeout(showTimerRef.current)
-          showTimerRef.current = null
-        }
+      pointerRef.current = { x: event.clientX, y: event.clientY }
+      clearHideTimer()
+
+      const el = findTooltipHost(event.target)
+      if (!el) return
+
+      const text = el.getAttribute('data-tooltip')?.trim()
+      if (!text) return
+
+      if (tooltipVisibleRef.current && activeTargetRef.current?.getAttribute('data-tooltip') === text) {
+        if (activeTargetRef.current !== el) paintTooltip(el, text)
         return
       }
-      if (el === activeTargetRef.current) return
-      if (!el.getAttribute('title')?.trim()) return
 
-      if (showTimerRef.current) clearTimeout(showTimerRef.current)
-      hideTooltip()
-      scheduleShow(el)
+      if (showTimerRef.current && pendingTextRef.current === text) {
+        pendingTargetRef.current = el
+        return
+      }
+
+      if (activeTargetRef.current && activeTargetRef.current !== el) {
+        hideTooltip()
+      }
+
+      scheduleShow(el, text)
     }
 
-    const onMouseOut = (event: MouseEvent) => {
-      const active = activeTargetRef.current
-      if (!active) {
-        if (showTimerRef.current) {
-          clearTimeout(showTimerRef.current)
-          showTimerRef.current = null
+    const onMouseOut = () => {
+      clearHideTimer()
+      hideTimerRef.current = setTimeout(() => {
+        hideTimerRef.current = null
+        const host = hostAtPointer()
+        if (!host) {
+          hideTooltip()
+          return
         }
-        return
-      }
 
-      const related = event.relatedTarget
-      if (related instanceof Node && active.contains(related)) return
-      hideTooltip()
+        const text = host.getAttribute('data-tooltip')?.trim()
+        if (!text) {
+          hideTooltip()
+          return
+        }
+
+        if (tooltipVisibleRef.current) {
+          if (activeTargetRef.current !== host) paintTooltip(host, text)
+          return
+        }
+
+        if (showTimerRef.current && pendingTextRef.current === text) {
+          pendingTargetRef.current = host
+          return
+        }
+
+        hideTooltip()
+      }, HIDE_DELAY_MS)
     }
 
     const onScroll = () => hideTooltip()
     const onMouseDown = () => hideTooltip()
 
+    document.addEventListener('mousemove', onPointerMove, { passive: true })
     document.addEventListener('mouseover', onMouseOver)
     document.addEventListener('mouseout', onMouseOut)
     window.addEventListener('scroll', onScroll, true)
     window.addEventListener('mousedown', onMouseDown)
 
     return () => {
+      observer.disconnect()
+      cancelAnimationFrame(refreshRafRef.current)
+      document.removeEventListener('mousemove', onPointerMove)
       document.removeEventListener('mouseover', onMouseOver)
       document.removeEventListener('mouseout', onMouseOut)
       window.removeEventListener('scroll', onScroll, true)

@@ -442,11 +442,25 @@ class LlmService {
     const payload = buildChatCompletionPayload(config, messages, false, {})
     const reqId = logLlmRequest({ label: 'completeMessagesForSummary', url, headers, body: payload })
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    })
+    const SUMMARY_TIMEOUT_MS = 180_000
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), SUMMARY_TIMEOUT_MS)
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(`Summary request timed out after ${SUMMARY_TIMEOUT_MS / 1000}s`)
+      }
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '')

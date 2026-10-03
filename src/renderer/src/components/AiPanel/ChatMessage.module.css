@@ -435,6 +435,18 @@
   color: #f44336;
 }
 
+.agentStatusLine {
+  margin: 2px 0;
+  padding: 2px 0 6px 20px;
+  color: var(--fg-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .continueWrap {
   display: flex;
   align-items: center;

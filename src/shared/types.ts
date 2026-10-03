@@ -156,6 +156,8 @@ export interface ChatMessage {
   agentHasToolActivity?: boolean
   /** Timestamp when live reasoning started (for duration label). */
   thinkingStartedAt?: number
+  /** Transient status line during agent work (e.g. context summarization). */
+  agentStatusLine?: string | null
   isStreaming?: boolean
   timestamp?: number
 }

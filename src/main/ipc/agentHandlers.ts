@@ -160,6 +160,10 @@ export function registerAgentHandlers(): void {
             if (aborted || event.sender.isDestroyed()) return
             event.sender.send(`agent:usage:${runId}`, usage)
           },
+          onAgentPhase: (phase, detail) => {
+            if (aborted || event.sender.isDestroyed()) return
+            event.sender.send(`agent:phase:${runId}`, { phase, detail })
+          },
           onContextSummarized: () => {
             if (aborted || event.sender.isDestroyed()) return
             event.sender.send(`agent:summarized:${runId}`)

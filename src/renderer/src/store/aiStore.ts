@@ -59,6 +59,7 @@ interface AiState {
   appendAgentStreamToken: (messageId: string, token: string) => void
   appendAgentReasoningToken: (messageId: string, token: string) => void
   setAgentContextUsage: (usage: AgentCompletionUsage) => void
+  setAgentStatusLine: (messageId: string, line: string | null) => void
   setComposerMode: (mode: ComposerMode) => void
   commitAgentStepThinking: (messageId: string, step: number, thinking: string | null) => void
   setActivePlan: (plan: AgentPlanPayload | null) => void
@@ -426,6 +427,7 @@ function applyAgentRunResult(message: ChatMessage, result: AgentRunResult): Chat
     agentCanContinue: Boolean(result.paused && result.canContinue),
     agentPauseReason: result.pauseReason,
     agentTotalSteps: result.totalSteps,
+    agentStatusLine: null,
   }
 }
 
@@ -461,6 +463,7 @@ async function launchAgentSessionRun(
     appendAgentStreamToken,
     appendAgentReasoningToken,
     setAgentContextUsage,
+    setAgentStatusLine,
     commitAgentStepThinking,
     appendToolEvent,
     appendToken,
@@ -595,6 +598,12 @@ async function launchAgentSessionRun(
       (token) => appendAgentStreamToken(assistantId, token),
       (token) => appendAgentReasoningToken(assistantId, token),
       (usage) => setAgentContextUsage(usage),
+      (phase) => {
+        if (phase === 'summarize') setAgentStatusLine(assistantId, t.agentSummarizeInProgress)
+        else if (phase === 'llm') setAgentStatusLine(assistantId, t.agentLlmWaiting)
+        else if (phase === 'tools') setAgentStatusLine(assistantId, t.agentToolsRunning)
+        else setAgentStatusLine(assistantId, null)
+      },
       () => useUiStore.getState().setStatusMessage(t.agentContextSummarized, 2000),
       (question) => useUiStore.getState().setPendingAskQuestion(question),
       (request) => useUiStore.getState().setPendingSwitchMode(request),
@@ -624,6 +633,7 @@ function finalizeStreamingInSessions(
             agentReasoningBuffer: undefined,
             agentStreamBuffer: undefined,
             agentProseBuffer: undefined,
+            agentStatusLine: null,
           }
         : m
     ),
@@ -982,6 +992,21 @@ export const useAiStore = create<AiState>((set, get) => ({
       set({ agentPromptTokens: usage.promptTokens })
       persistActiveSessionUi(get, set, { agentPromptTokens: usage.promptTokens })
     }
+  },
+
+  setAgentStatusLine: (messageId: string, line: string | null) => {
+    const { streamingSessionId, activeSessionId } = get()
+    const sessionId = streamingSessionId ?? activeSessionId
+    if (!sessionId) return
+
+    set((s) => ({
+      sessions: patchSession(s.sessions, sessionId, (session) => ({
+        ...session,
+        messages: session.messages.map((m) =>
+          m.id === messageId ? { ...m, agentStatusLine: line } : m
+        ),
+      })),
+    }))
   },
 
   setComposerMode: (mode) => {

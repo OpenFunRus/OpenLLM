@@ -78,6 +78,7 @@ export function ChatMessage({
     || Boolean(message.isStreaming && message.agentStreamBuffer)
     || Boolean(message.isStreaming && message.agentReasoningBuffer)
     || Boolean(message.isStreaming && message.agentProseBuffer?.trim())
+    || Boolean(message.agentStatusLine?.trim())
   )
 
   const proseInTimeline = Boolean(
@@ -115,7 +116,7 @@ export function ChatMessage({
                 type="button"
                 className={styles.userBubbleRollback}
                 onClick={handleEditClick}
-                title={t.editMessage}
+                data-tooltip={t.editMessage}
                 aria-label={t.editMessage}
               >
                 <IconUndo size={14} />
@@ -133,7 +134,7 @@ export function ChatMessage({
                         e.stopPropagation()
                         setLightbox({ src: att.dataUrl, alt: att.name })
                       }}
-                      title={att.name}
+                      data-tooltip={att.name}
                     >
                       <img src={att.dataUrl} alt={att.name} className={styles.userAttachmentImg} />
                     </button>
@@ -180,7 +181,7 @@ export function ChatMessage({
             type="button"
             className={styles.actionBtn}
             onClick={copyToClipboard}
-            title={copied ? t.copied : t.copy}
+            data-tooltip={copied ? t.copied : t.copy}
             aria-label={copied ? t.copied : t.copy}
           >
             {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}

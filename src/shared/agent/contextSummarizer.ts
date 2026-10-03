@@ -38,6 +38,15 @@ function isTurnStartMessage(msg: AgentChatMessage, index: number): boolean {
   return extractUserQueryFromTurnMessage(msg.content) !== null
 }
 
+/** Each assistant message in the agent loop starts a compressible segment. */
+export function findAssistantStepStarts(messages: AgentChatMessage[], afterIndex: number): number[] {
+  const starts: number[] = []
+  for (let i = afterIndex; i < messages.length; i++) {
+    if (messages[i]?.role === 'assistant') starts.push(i)
+  }
+  return starts
+}
+
 export function splitAgentHistoryForSummary(
   messages: AgentChatMessage[],
   keepRecentTurns: number
@@ -51,18 +60,36 @@ export function splitAgentHistoryForSummary(
     if (isTurnStartMessage(messages[i]!, i)) turnStarts.push(i)
   }
 
-  if (turnStarts.length === 0 || keepRecentTurns <= 0) {
+  const stepStarts = findAssistantStepStarts(messages, headLen)
+
+  // Multi-turn chat: split on user turns. Long single-turn agent run: split on agent steps.
+  const segmentStarts =
+    turnStarts.length > 1 ? turnStarts : stepStarts.length > 0 ? stepStarts : turnStarts
+
+  if (segmentStarts.length === 0 || keepRecentTurns <= 0) {
     return { head, middle: rest, tail: [] }
   }
 
-  const keep = Math.min(keepRecentTurns, turnStarts.length)
-  const tailStart = turnStarts[turnStarts.length - keep]!
+  const keep = Math.min(keepRecentTurns, segmentStarts.length)
+  const tailStart = segmentStarts[segmentStarts.length - keep]!
+
+  if (tailStart <= headLen) {
+    return { head, middle: [], tail: rest }
+  }
 
   return {
     head,
     middle: messages.slice(headLen, tailStart),
     tail: messages.slice(tailStart),
   }
+}
+
+/** Best-effort prompt size: API usage from last step may omit tool results appended since. */
+export function resolveAgentPromptTokens(
+  messages: AgentChatMessage[],
+  promptTokens?: number
+): number {
+  return Math.max(promptTokens ?? 0, estimateAgentMessagesTokens(messages))
 }
 
 export function squeezeToolOutputsForSummary(messages: AgentChatMessage[]): AgentChatMessage[] {

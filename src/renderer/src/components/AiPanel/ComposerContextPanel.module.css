@@ -1,0 +1,202 @@
+.panel {
+  position: relative;
+  z-index: 0;
+  flex-shrink: 0;
+  margin: 0 10px -10px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: 10px 10px 0 0;
+  background: var(--composer-cap-bg);
+  overflow: hidden;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px 17px;
+  border: none;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--fg-primary);
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.toggleLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+  padding: 10px 12px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 65%, transparent);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.contextBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contextBarTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-light) 80%, transparent);
+  overflow: hidden;
+}
+
+.contextBarFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fg-secondary);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.contextBarFillWarn {
+  background: var(--accent-yellow);
+}
+
+.contextBarFillDanger {
+  background: var(--accent-red);
+}
+
+.contextMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  line-height: 1.3;
+}
+
+.contextPct {
+  font-weight: 600;
+  color: var(--fg-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.contextTokens {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.emptyHint {
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.fileList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-primary);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fileItem:hover {
+  background: var(--bg-hover);
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  min-width: 22px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileStats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.added {
+  color: #6bbf6b;
+}
+
+.removed {
+  color: #e06c75;
+}
+
+.pendingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}

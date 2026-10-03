@@ -30,7 +30,7 @@ export function UserPromptBubble({
           type="button"
           className={styles.rollback}
           onClick={() => onEditOpen(messageIndex)}
-          title={t.editMessage}
+          data-tooltip={t.editMessage}
           aria-label={t.editMessage}
         >
           <IconUndo size={14} />

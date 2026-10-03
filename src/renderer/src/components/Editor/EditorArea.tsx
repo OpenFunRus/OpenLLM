@@ -34,7 +34,7 @@ export function EditorArea(): JSX.Element {
                   type="button"
                   className={`${styles.previewToggle} ${showMarkdownPreview ? styles.previewToggleOn : ''}`}
                   onClick={() => toggleMarkdownPreview(activeTab.id)}
-                  title={t.markdownPreviewMode}
+                  data-tooltip={t.markdownPreviewMode}
                   aria-pressed={showMarkdownPreview}
                 >
                   <span className={styles.previewToggleMark} aria-hidden="true">✓</span>

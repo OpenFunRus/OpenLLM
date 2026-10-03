@@ -121,9 +121,10 @@ export function registerSettingsHandlers(): void {
 
 
   ipcMain.handle('settings:set', (_e, key: keyof AppSettings, value: unknown) => {
-
     settingsService.set(key as any, value as any)
-
+    if (key === 'agentSummarizeAtPercent') {
+      settingsService.set('agentContextStopPercent', value as number)
+    }
   })
 
 

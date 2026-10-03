@@ -26,7 +26,7 @@ export function PlanPanel({ plan, onDismiss }: PlanPanelProps): JSX.Element {
         <div className={styles.headerMain}>
           <span className={styles.title}>{plan.name?.trim() || t.planPanelTitle}</span>
           {plan.filePath && (
-            <span className={styles.filePath} title={plan.filePath}>
+            <span className={styles.filePath} data-tooltip={plan.filePath}>
               {t.planSavedTo(relativeDisplayPath(plan.filePath, workspacePath))}
             </span>
           )}
@@ -37,7 +37,7 @@ export function PlanPanel({ plan, onDismiss }: PlanPanelProps): JSX.Element {
               {t.planOpenFile}
             </button>
           )}
-          <button type="button" className={styles.dismiss} onClick={onDismiss} title={t.planDismiss}>
+          <button type="button" className={styles.dismiss} onClick={onDismiss} data-tooltip={t.planDismiss}>
             ×
           </button>
         </div>
